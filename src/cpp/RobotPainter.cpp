@@ -5,7 +5,7 @@ template<class T,class U>void v(const pair<T,U>&p,s&&e="\n"){cerr<<"(";v(p.first
 template<class T>void v(const vector<T>&vx,s);template<class T>auto ve(int,const vector<T>&vx)->decltype(cerr<<vx[0]){cerr<<"{";for(const T&x:vx)v(x,",");return cerr<<"}\n";}template<class T>auto ve(bool,const vector<T>&vx){cerr<<"{\n";for(const T&x:vx)cerr<<"  ",v(x,",");cerr<<"}\n";}template<class T>void v(const vector<T>&vx,s){ve(0,vx);}
 template<class T>void v(const deque<T>&q,s&&e){v(vector<T>(q.begin(),q.end()),e);}template<class T,class C>void v(const set<T,C>&S,s&&e){v(vector<T>(S.begin(),S.end()),e);}template<class T,class C>void v(const multiset<T,C>&S,s&&e){v(vector<T>(S.begin(),S.end()),e);}template<class T>void v(const unordered_set<T>&S,s&&e){v(vector<T>(S.begin(),S.end()),e);}
 template<class T,class U,class V>void v(const priority_queue<T,U,V>&p,s&&e){priority_queue<T,U,V>q=p;vector<T>z;while(!q.empty()){z.push_back(q.top());q.pop();}v(z,e);}template<class T,class U>void v(const map<T,U>&m,s&&e){cerr<<"{"<<(m.empty()?"":"\n");for(const auto&kv:m){cerr<<"  [";v(kv.first,"");cerr<<"] : ";v(kv.second,"");cerr<<"\n";}cerr<<"}"+e;}
-template<class T>void _view(int n,s&S,T&var){cerr<<"\033[1;32m"<<n<<"\033[0m: \033[1;36m"<<S<<"\033[0m = ";v(var,"\n");}template<class T>void grid(T _){}void grid(const vector<vector<bool>>&vvb){cerr<<"\n";for(const vector<bool>&vb:vvb){for(const bool&b:vb)cerr<<(b?".":"#");cerr<<"\n";}}
+template<class T>void _view(int n,s&S,T&var){cerr<<"\033[1;32m"<<n<<"\033[0m: \033[1;36m"<<S<<"\033[0m = ";v(var,"\n");}template<class T>void grid([[maybe_unused]]T _){}void grid(const vector<vector<bool>>&vvb){cerr<<"\n";for(const vector<bool>&vb:vvb){for(const bool&b:vb)cerr<<(b?".":"#");cerr<<"\n";}}
 void _debug(int,s){}template<typename H,typename... T>void _debug(int n,s S,const H&h,const T&... t){int i=0,cnt=0;for(;i<int(S.size());i++){if(S[i]=='(')cnt++;if(S[i]==')')cnt--;if(cnt==0&&S[i]==',')break;}if(i==int(S.size()))_view(n,S,h);else{s S1=S.substr(0,i),S2=S.substr(i+2);if(S2=="\"grid\""){cerr<<"\033[1;32m"<<n<<"\033[0m: \033[1;36m"<<S1<<"\033[0m = ";grid(h);}else _view(n,S1,h),_debug(n,S2,t...);}}}
 template<class T>bool chmax(T&a,const T&b){return a<b?a=b,1:0;}template<class T>bool chmin(T&a,const T&b){return a>b?a=b,1:0;} // https://rsk0315.hatenablog.com/entry/2021/01/18/065720
 namespace internal{template<class T>using is_signed_int128=typename conditional<is_same<T,__int128_t>::value||is_same<T,__int128>::value,true_type,false_type>::type;template<class T>using is_unsigned_int128=typename conditional<is_same<T,__uint128_t>::value||is_same<T,unsigned __int128>::value,true_type,false_type>::type;template<class T>using is_integral=typename conditional<std::is_integral<T>::value||is_signed_int128<T>::value||is_unsigned_int128<T>::value,true_type,false_type>::type;
@@ -112,6 +112,22 @@ void read_input() {
     }
 }
 
+int to_idx(int r, int c) { return r * N + c; };
+pair<int, int> to_hw(int idx) { return {idx / N, idx % N}; };
+
+using Bitset = bitset<900>;
+
+ostream& operator<<(ostream& os, const Bitset& b) {
+    os << "----" << endl;
+    for (int r = 0; r < N; r++) {
+        for (int c = 0; c < N; c++) {
+            os << (b[to_idx(r, c)] ? '#' : '.');
+        }
+        os << endl;
+    }
+    return os;
+}
+
 enum CommandType {
     D,    //       PEN DOWN
     U,    //       PEN UP
@@ -125,6 +141,9 @@ enum CommandType {
 };
 const string COMMAND_STR[9] = {"D", "U", "F", "B", "R", "L", "J", "FOR", "END"};
 
+/**
+ * @brief 問題に定義されている操作群をコマンドとして定義している
+ */
 struct Command {
     CommandType type;
     int info1;
@@ -175,6 +194,10 @@ struct Command {
     }
 };
 
+/**
+ * @brief commandの配列
+ * @note L,Rはまとめて渡すこと 第一引数に個数を記す
+ */
 struct Commands {
     vector<Command> commands;
     vector<int> forStartIds;
@@ -182,8 +205,16 @@ struct Commands {
     Commands() : cost(0) {}
 
     void addCommand(CommandType type, int info1 = -1, int info2 = -1) {
-        commands.emplace_back(type, forStartIds, commands, info1, info2);
-        cost += commands.back().getCost();
+        if (type == R || type == L) {
+            assert(info1 != -1);
+            for (int _ = 0; _ < info1; _++) {
+                commands.emplace_back(type, forStartIds, commands, -1, info2);
+            }
+            cost += commands.back().getCost() * info1;
+        } else {
+            commands.emplace_back(type, forStartIds, commands, info1, info2);
+            cost += commands.back().getCost();
+        }
     }
 
     friend ostream& operator<<(ostream& os, const Commands& commands) {
@@ -195,6 +226,10 @@ struct Commands {
     }
 };
 
+/**
+ * @brief コマンド群から得点や塗られる箇所を計算する
+ *        部分的に配布物のRobotPainterTester.javaから移植した
+ */
 struct Simulator {
     vector<vector<bool>> g;
     int grid_cost;
@@ -302,28 +337,94 @@ struct Simulator {
     }
 };
 
+// /**
+//  * @brief r行c列ずらした盤面を前計算しておく
+//  * @note 参照のみなら、データの取得は必ず以下の形で行うこと
+//  *       const Bitset& g = bitsetbank.getBitset(r, c);
+//  */
+// struct BitsetBank {
+//     vector<vector<Bitset>> _bitsets;
+
+//     BitsetBank() {}
+
+//     void init() {
+//         assert(_bitsets.empty());
+//         _bitsets.resize(N, vector<Bitset>(N));
+//         for (int r = 0; r < N; r++) {
+//             for (int c = 0; c < N; c++) {
+//                 _bitsets[r][c] = _getBitset(r, c);
+//             }
+//         }
+//     }
+
+//     Bitset _getBitset(int r, int c) {
+//         vector<vector<bool>> grid = GRID;
+//         for (auto& row : grid) {
+//             rotate(row.begin(), row.begin() + c, row.end());
+//         }
+//         rotate(grid.begin(), grid.begin() + r, grid.end());
+//         Bitset ret(0);
+//         for (int r = 0; r < N; r++) {
+//             for (int c = 0; c < N; c++) {
+//                 ret[to_idx(r, c)] = grid[r][c];
+//             }
+//         }
+//         return ret;
+//     }
+
+//     const Bitset& getBitset(int r, int c) const {
+//         assert(0 <= r && 0 <= c);
+//         r %= N;
+//         c %= N;
+//         return _bitsets[r][c];
+//     }
+// };
+// BitsetBank bb;
+
+// auto findBestRect() {
+//     for (int loopx = 3; loopx <= 10; loopx++) {
+//         int max_cnt = 0;
+//         int best_sr = -1;
+//         int best_sc = -1;
+//         int best_dr = -1;
+//         int best_dc = -1;
+//         Bitset best_g;
+//         for (int sr = 0; sr < N; sr++) {
+//             for (int sc = 0; sc < N; sc++) {
+//                 for (int dr = 0; dr < N; dr++) {
+//                     for (int dc = (dr ? 0 : 1); dc < N; dc++) {
+//                         Bitset g = bb.getBitset(sr, sc);
+//                         for (int inner_loop = 1; inner_loop < loopx;
+//                              inner_loop++) {
+//                             const Bitset& g2 = bb.getBitset(
+//                                 sr + dr * inner_loop, sc + dc * inner_loop);
+//                             g &= g2;
+//                         }
+//                         if (chmax(max_cnt, int(g.count()))) {
+//                             swap(best_g, g);
+//                             best_sr = sr;
+//                             best_sc = sc;
+//                             best_dr = dr;
+//                             best_dc = dc;
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//         debug(max_cnt);
+//         debug(make_tuple(best_sr, best_sc, best_dr, best_dc));
+//         debug(best_g);
+//     }
+// }
+
 void solve() {
-    Commands commands;
+    // bb.init();
+    // findBestRect();
 
-    int curR = 0;
-    int curC = 0;
-    commands.addCommand(D);
-    commands.addCommand(FOR, 3);
-    for (int r = 0; r < N; r++) {
-        for (int c = 0; c < N; c++) {
-            if (GRID[r][c]) {
-                commands.addCommand(J, (r - curR + N) % N, (c - curC + N) % N);
-                curR = r;
-                curC = c;
-            }
-        }
-    }
-    commands.addCommand(END);
-
-    Simulator sim(commands);
-    sim.report();
-
-    cout << commands << endl;
+    // Commands commands;
+    // Simulator sim(commands);
+    // sim.report();
+    // cout << commands << endl;
 }
 
 int main() {
