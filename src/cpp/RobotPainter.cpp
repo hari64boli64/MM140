@@ -98,6 +98,10 @@ int FC;                     // FOR COST
 vector<vector<bool>> GRID;  // N*N
 int TARGET_NUM;
 
+constexpr int dirLen = 8;
+constexpr int dr[dirLen] = {0, 1, 1, 1, 0, -1, -1, -1};
+constexpr int dc[dirLen] = {1, 1, 0, -1, -1, -1, 0, 1};
+
 void read_input() {
     cin >> N >> JC >> FC;
     GRID.resize(N, vector<bool>(N));
@@ -177,6 +181,8 @@ struct Command {
             return JC;
         } else if (type == FOR) {
             return FC;
+        } else if (type == END) {
+            return 0;
         } else {
             return 1;
         }
@@ -202,6 +208,7 @@ struct Commands {
     vector<Command> commands;
     vector<int> forStartIds;
     int cost;
+
     Commands() : cost(0) {}
 
     void addCommand(CommandType type, int info1 = -1, int info2 = -1) {
@@ -212,6 +219,9 @@ struct Commands {
             }
             cost += commands.back().getCost() * info1;
         } else {
+            if ((type == F || type == B) && info1 == 0) {
+                return;
+            }
             commands.emplace_back(type, forStartIds, commands, info1, info2);
             cost += commands.back().getCost();
         }
@@ -236,12 +246,11 @@ struct Simulator {
     int commands_cost;
     int total_cost;
 
-    const int static dirLen = 8;
-    const int dr[dirLen] = {0, 1, 1, 1, 0, -1, -1, -1};
-    const int dc[dirLen] = {1, 1, 0, -1, -1, -1, 0, 1};
-
-    Simulator(const Commands& commands) : g(GRID), total_cost(-1) {
-        reflectCommands(commands);
+    Simulator(const Commands& commands)
+        : g(N, vector<bool>(N, false)),
+          commands_cost(commands.cost),
+          total_cost(-1) {
+        reflectCommands(commands.commands);
     }
 
     void report() {
@@ -254,17 +263,24 @@ struct Simulator {
     }
 
    private:
-    void reflectCommands(const Commands& commands) {
+    void reflectCommands(const vector<Command>& commands) {
         int r = 0;
         int c = 0;
         int dir = 0;
-        int errors = 0;
+        int success = 0;
+        int fail = 0;
         bool isPenUp = true;
-        int loop_counter = -1;
         int nest = 0;
 
-        for (int commandId = 0; commandId < int(commands.commands.size());) {
-            Command m = commands.commands[commandId];
+        unordered_map<int, int> loop_counter;
+        for (int commandId = 0; commandId < int(commands.size()); commandId++) {
+            if (commands[commandId].type == FOR) {
+                loop_counter[commandId] = -1;
+            }
+        }
+
+        for (int commandId = 0; commandId < int(commands.size());) {
+            const Command& m = commands[commandId];
             if (m.type == L) {
                 dir = (dir - 1 + dirLen) % dirLen;
             } else if (m.type == R) {
@@ -277,7 +293,9 @@ struct Simulator {
                 isPenUp = false;
                 if (!g[r][c]) {
                     if (!GRID[r][c]) {
-                        errors++;
+                        fail++;
+                    } else {
+                        success++;
                     }
                     g[r][c] = true;
                 }
@@ -287,7 +305,9 @@ struct Simulator {
                     c = (c + dc[dir] + N) % N;
                     if (!isPenUp && !g[r][c]) {
                         if (!GRID[r][c]) {
-                            errors++;
+                            fail++;
+                        } else {
+                            success++;
                         }
                         g[r][c] = true;
                     }
@@ -298,7 +318,9 @@ struct Simulator {
                     c = (c - dc[dir] + N) % N;
                     if (!isPenUp && !g[r][c]) {
                         if (!GRID[r][c]) {
-                            errors++;
+                            fail++;
+                        } else {
+                            success++;
                         }
                         g[r][c] = true;
                     }
@@ -308,123 +330,97 @@ struct Simulator {
                 c = (c + m.info2 + N) % N;
                 if (!isPenUp && !g[r][c]) {
                     if (!GRID[r][c]) {
-                        errors++;
+                        fail++;
+                    } else {
+                        success++;
                     }
                     g[r][c] = true;
                 }
             } else if (m.type == FOR) {
-                if (loop_counter == -1) {
-                    loop_counter = m.info1 - 1;
+                if (loop_counter.at(commandId) == -1) {
+                    loop_counter.at(commandId) = m.info1 - 1;
+                    assert(2 <= m.info1 && m.info1 <= 10);
                     nest++;
                     assert(nest <= 3);
-                } else if (loop_counter == 0) {
-                    loop_counter = -1;
+                } else if (loop_counter.at(commandId) == 0) {
                     nest--;
+                    loop_counter.at(commandId) = -1;
                     commandId = m.info2;
                 } else {
-                    assert(loop_counter > 0);
-                    loop_counter--;
+                    assert(loop_counter.at(commandId) > 0);
+                    loop_counter.at(commandId)--;
                 }
             } else if (m.type == END) {
                 commandId = m.info1 - 1;
             }
             commandId++;
         }
-        assert(nest == 0 && loop_counter == -1);
-        grid_cost = errors * 10;
-        commands_cost = commands.cost;
+        assert(nest == 0);
+        for (const auto& [_key, value] : loop_counter) {
+            assert(value == -1);
+        }
+        grid_cost = (TARGET_NUM - success + fail) * 10;
         total_cost = grid_cost + commands_cost;
     }
 };
 
-// /**
-//  * @brief r行c列ずらした盤面を前計算しておく
-//  * @note 参照のみなら、データの取得は必ず以下の形で行うこと
-//  *       const Bitset& g = bitsetbank.getBitset(r, c);
-//  */
-// struct BitsetBank {
-//     vector<vector<Bitset>> _bitsets;
-
-//     BitsetBank() {}
-
-//     void init() {
-//         assert(_bitsets.empty());
-//         _bitsets.resize(N, vector<Bitset>(N));
-//         for (int r = 0; r < N; r++) {
-//             for (int c = 0; c < N; c++) {
-//                 _bitsets[r][c] = _getBitset(r, c);
-//             }
-//         }
-//     }
-
-//     Bitset _getBitset(int r, int c) {
-//         vector<vector<bool>> grid = GRID;
-//         for (auto& row : grid) {
-//             rotate(row.begin(), row.begin() + c, row.end());
-//         }
-//         rotate(grid.begin(), grid.begin() + r, grid.end());
-//         Bitset ret(0);
-//         for (int r = 0; r < N; r++) {
-//             for (int c = 0; c < N; c++) {
-//                 ret[to_idx(r, c)] = grid[r][c];
-//             }
-//         }
-//         return ret;
-//     }
-
-//     const Bitset& getBitset(int r, int c) const {
-//         assert(0 <= r && 0 <= c);
-//         r %= N;
-//         c %= N;
-//         return _bitsets[r][c];
-//     }
-// };
-// BitsetBank bb;
-
-// auto findBestRect() {
-//     for (int loopx = 3; loopx <= 10; loopx++) {
-//         int max_cnt = 0;
-//         int best_sr = -1;
-//         int best_sc = -1;
-//         int best_dr = -1;
-//         int best_dc = -1;
-//         Bitset best_g;
-//         for (int sr = 0; sr < N; sr++) {
-//             for (int sc = 0; sc < N; sc++) {
-//                 for (int dr = 0; dr < N; dr++) {
-//                     for (int dc = (dr ? 0 : 1); dc < N; dc++) {
-//                         Bitset g = bb.getBitset(sr, sc);
-//                         for (int inner_loop = 1; inner_loop < loopx;
-//                              inner_loop++) {
-//                             const Bitset& g2 = bb.getBitset(
-//                                 sr + dr * inner_loop, sc + dc * inner_loop);
-//                             g &= g2;
-//                         }
-//                         if (chmax(max_cnt, int(g.count()))) {
-//                             swap(best_g, g);
-//                             best_sr = sr;
-//                             best_sc = sc;
-//                             best_dr = dr;
-//                             best_dc = dc;
-//                         }
-//                     }
-//                 }
-//             }
-//         }
-//         debug(max_cnt);
-//         debug(make_tuple(best_sr, best_sc, best_dr, best_dc));
-//         debug(best_g);
-//     }
-// }
+bool simple_check(int sr, int sc, int f1, int r1) {
+    assert(GRID[sr][sc]);
+    for (int step = 1; step <= f1; step++) {
+        if (!GRID[(sr + step * dr[r1] + N) % N][(sc + step * dc[r1] + N) % N]) {
+            return false;
+        }
+    }
+    return true;
+}
 
 void solve() {
-    // bb.init();
-    // findBestRect();
+    Commands best_commands;
+    int best_score = INF;
 
-    // Commands commands;
-    // Simulator sim(commands);
-    // sim.report();
-    // cout << commands << endl;
+    for (int sr = 0; sr < N; sr++) {
+        for (int sc = 0; sc < N; sc++) {
+            if (!GRID[sr][sc]) continue;
+
+            for (int f1 = 0; f1 < N; f1++) {
+                for (int r1 = 0; r1 < (f1 ? dirLen : 1); r1++) {
+                    if (!simple_check(sr, sc, f1, r1)) continue;
+
+                    for (int loopx1 = 2; loopx1 <= 10; loopx1++) {
+                        for (int f2 = 0; f2 < N / 5; f2++) {
+                            for (int r2 = 0; r2 < (f2 ? dirLen : 1); r2++) {
+                                // Commands commands;
+                                // commands.addCommand(J, sr, sc);
+                                // commands.addCommand(D);
+                                // commands.addCommand(FOR, loopx1);
+                                // {
+                                //     commands.addCommand(R, r1);
+                                //     commands.addCommand(F, f1);
+                                //     commands.addCommand(R, r2);
+                                //     commands.addCommand(F, f2);
+                                // }
+                                // commands.addCommand(END);
+
+                                // Simulator sim(commands);
+
+                                // if (chmin(best_score, sim.grid_cost)) {
+                                //     swap(best_commands, commands);
+                                // }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    debug(cnt, cnt2);
+    assert(false);
+
+    debug(best_commands);
+    Simulator sim(best_commands);
+    sim.report();
+    cout << best_commands << endl;
 }
 
 int main() {
