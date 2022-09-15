@@ -92,43 +92,250 @@ string with_fill(int n,int num=3,char space=' '){string s=to_string(n);return st
 
 // clang-format on
 
+int N;                      // grid size
+int JC;                     // JUMP COST
+int FC;                     // FOR COST
+vector<vector<bool>> GRID;  // N*N
+int TARGET_NUM;
+
+void read_input() {
+    cin >> N >> JC >> FC;
+    GRID.resize(N, vector<bool>(N));
+    TARGET_NUM = 0;
+    for (int r = 0; r < N; r++) {
+        for (int c = 0; c < N; c++) {
+            char a;
+            cin >> a;
+            GRID[r][c] = (a == '#');
+            TARGET_NUM += int(GRID[r][c]);
+        }
+    }
+}
+
+enum CommandType {
+    D,    //       PEN DOWN
+    U,    //       PEN UP
+    F,    // n     MOVE FORWARD
+    B,    // n     MOVE BACKWARD
+    R,    //       ROTATE RIGHT
+    L,    //       ROTATE LEFT
+    J,    // dr dc JUMP
+    FOR,  // x (2<=x<=10)
+    END,  //
+};
+const string COMMAND_STR[9] = {"D", "U", "F", "B", "R", "L", "J", "FOR", "END"};
+
+struct Command {
+    CommandType type;
+    int info1;
+    int info2;
+
+    Command(CommandType type, vector<int>& forStartIds,
+            vector<Command>& commands, int _info1 = -1, int _info2 = -1)
+        : type(type), info1(_info1), info2(_info2) {
+        if (type == D || type == U || type == R || type == L || type == END) {
+            assert(info1 == -1 && info2 == -1);
+            if (type == END) {
+                assert(!forStartIds.empty());
+                info1 = forStartIds.back();
+                forStartIds.pop_back();
+                assert(commands[info1].info2 == -1);
+                commands[info1].info2 = commands.size();
+            }
+        } else if (type == F || type == B || type == FOR) {
+            assert(info1 != -1 && info2 == -1);
+            if (type == FOR) {
+                assert(2 <= info1 && info1 <= 10);
+                forStartIds.push_back(commands.size());
+            }
+        } else {
+            assert(info1 != -1 && info2 != -1);
+        }
+    }
+
+    int getCost() {
+        if (type == J) {
+            return JC;
+        } else if (type == FOR) {
+            return FC;
+        } else {
+            return 1;
+        }
+    }
+
+    friend ostream& operator<<(ostream& os, const Command& command) {
+        os << COMMAND_STR[command.type];
+        if (command.info1 >= 0 && command.type != END) {
+            os << " " << command.info1;
+        }
+        if (command.info2 >= 0 && command.type != FOR) {
+            os << " " << command.info2;
+        }
+        return os;
+    }
+};
+
+struct Commands {
+    vector<Command> commands;
+    vector<int> forStartIds;
+    int cost;
+    Commands() : cost(0) {}
+
+    void addCommand(CommandType type, int info1 = -1, int info2 = -1) {
+        commands.emplace_back(type, forStartIds, commands, info1, info2);
+        cost += commands.back().getCost();
+    }
+
+    friend ostream& operator<<(ostream& os, const Commands& commands) {
+        os << commands.commands.size() << endl;
+        for (auto& c : commands.commands) {
+            os << c << endl;
+        }
+        return os;
+    }
+};
+
+struct Simulator {
+    vector<vector<bool>> g;
+    int grid_cost;
+    int commands_cost;
+    int total_cost;
+
+    const int static dirLen = 8;
+    const int dr[dirLen] = {0, 1, 1, 1, 0, -1, -1, -1};
+    const int dc[dirLen] = {1, 1, 0, -1, -1, -1, 0, 1};
+
+    Simulator(const Commands& commands) : g(GRID), total_cost(-1) {
+        reflectCommands(commands);
+    }
+
+    void report() {
+        esc::color(esc::ORANGE, "    Grid Cost: " + to_string(grid_cost));
+        cerr << endl;
+        esc::color(esc::ORANGE, "Commands Cost: " + to_string(commands_cost));
+        cerr << endl;
+        esc::color(esc::RED, "   Total Cost: " + to_string(total_cost));
+        cerr << endl;
+    }
+
+   private:
+    void reflectCommands(const Commands& commands) {
+        int r = 0;
+        int c = 0;
+        int dir = 0;
+        int errors = 0;
+        bool isPenUp = true;
+        int loop_counter = -1;
+        int nest = 0;
+
+        for (int commandId = 0; commandId < int(commands.commands.size());) {
+            Command m = commands.commands[commandId];
+            if (m.type == L) {
+                dir = (dir - 1 + dirLen) % dirLen;
+            } else if (m.type == R) {
+                dir = (dir + 1) % dirLen;
+            } else if (m.type == U) {
+                assert(!isPenUp);
+                isPenUp = true;
+            } else if (m.type == D) {
+                assert(isPenUp);
+                isPenUp = false;
+                if (!g[r][c]) {
+                    if (!GRID[r][c]) {
+                        errors++;
+                    }
+                    g[r][c] = true;
+                }
+            } else if (m.type == F) {
+                for (int i = 0; i < m.info1; i++) {
+                    r = (r + dr[dir] + N) % N;
+                    c = (c + dc[dir] + N) % N;
+                    if (!isPenUp && !g[r][c]) {
+                        if (!GRID[r][c]) {
+                            errors++;
+                        }
+                        g[r][c] = true;
+                    }
+                }
+            } else if (m.type == B) {
+                for (int i = 0; i < m.info1; i++) {
+                    r = (r - dr[dir] + N) % N;
+                    c = (c - dc[dir] + N) % N;
+                    if (!isPenUp && !g[r][c]) {
+                        if (!GRID[r][c]) {
+                            errors++;
+                        }
+                        g[r][c] = true;
+                    }
+                }
+            } else if (m.type == J) {
+                r = (r + m.info1 + N) % N;
+                c = (c + m.info2 + N) % N;
+                if (!isPenUp && !g[r][c]) {
+                    if (!GRID[r][c]) {
+                        errors++;
+                    }
+                    g[r][c] = true;
+                }
+            } else if (m.type == FOR) {
+                if (loop_counter == -1) {
+                    loop_counter = m.info1 - 1;
+                    nest++;
+                    assert(nest <= 3);
+                } else if (loop_counter == 0) {
+                    loop_counter = -1;
+                    nest--;
+                    commandId = m.info2;
+                } else {
+                    assert(loop_counter > 0);
+                    loop_counter--;
+                }
+            } else if (m.type == END) {
+                commandId = m.info1 - 1;
+            }
+            commandId++;
+        }
+        assert(nest == 0 && loop_counter == -1);
+        grid_cost = errors * 10;
+        commands_cost = commands.cost;
+        total_cost = grid_cost + commands_cost;
+    }
+};
+
+void solve() {
+    Commands commands;
+
+    int curR = 0;
+    int curC = 0;
+    commands.addCommand(D);
+    commands.addCommand(FOR, 3);
+    for (int r = 0; r < N; r++) {
+        for (int c = 0; c < N; c++) {
+            if (GRID[r][c]) {
+                commands.addCommand(J, (r - curR + N) % N, (c - curC + N) % N);
+                curR = r;
+                curC = c;
+            }
+        }
+    }
+    commands.addCommand(END);
+
+    Simulator sim(commands);
+    sim.report();
+
+    cout << commands << endl;
+}
+
 int main() {
     cin.tie(0);
     ios::sync_with_stdio(false);
 
-    int N, JC, FC;
-    cin >> N >> JC >> FC;
+    timer.start();
+    read_input();
+    solve();
+    timer.stop();
 
-    int numPainted = 0;
-    bool grid[N][N];
-    for (int r = 0; r < N; r++)
-        for (int c = 0; c < N; c++) {
-            char a;
-            cin >> a;
-            if (a == '#') {
-                grid[r][c] = true;
-                numPainted++;
-            } else
-                grid[r][c] = false;
-        }
-
-    bool first = true;
-    int curR = 0;
-    int curC = 0;
-
-    cout << (numPainted + 1) << endl;
-    for (int r = 0; r < N; r++)
-        for (int c = 0; c < N; c++)
-            if (grid[r][c]) {
-                cout << "J " << (r - curR + N) % N << " " << (c - curC + N) % N
-                     << endl;
-                if (first) cout << "D\n";
-                first = false;
-                curR = r;
-                curC = c;
-            }
-
-    cout.flush();
+    cerr << timer.report() << endl;
 
     return 0;
 }
