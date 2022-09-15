@@ -101,6 +101,7 @@ int TARGET_NUM;
 constexpr int dirLen = 8;
 constexpr int dr[dirLen] = {0, 1, 1, 1, 0, -1, -1, -1};
 constexpr int dc[dirLen] = {1, 1, 0, -1, -1, -1, 0, 1};
+///////////////////////////→  ↘  ↓  ↙  ←  ↖  ↑  ↗
 
 void read_input() {
     cin >> N >> JC >> FC;
@@ -154,25 +155,27 @@ struct Command {
     int info2;
 
     Command(CommandType type, vector<int>& forStartIds,
-            vector<Command>& commands, int _info1 = -1, int _info2 = -1)
+            vector<Command>& commands, int _info1 = -INF, int _info2 = -INF)
         : type(type), info1(_info1), info2(_info2) {
         if (type == D || type == U || type == R || type == L || type == END) {
-            assert(info1 == -1 && info2 == -1);
+            assert(info1 == -INF && info2 == -INF);
             if (type == END) {
                 assert(!forStartIds.empty());
                 info1 = forStartIds.back();
                 forStartIds.pop_back();
-                assert(commands[info1].info2 == -1);
+                assert(commands[info1].info2 == -INF);
                 commands[info1].info2 = commands.size();
             }
         } else if (type == F || type == B || type == FOR) {
-            assert(info1 != -1 && info2 == -1);
+            assert(info1 != -INF && info2 == -INF);
             if (type == FOR) {
                 assert(2 <= info1 && info1 <= 10);
                 forStartIds.push_back(commands.size());
+            } else {
+                assert(0 <= info1 && info1 < N);
             }
         } else {
-            assert(info1 != -1 && info2 != -1);
+            assert(info1 != -INF && info2 != -INF);
         }
     }
 
@@ -190,10 +193,10 @@ struct Command {
 
     friend ostream& operator<<(ostream& os, const Command& command) {
         os << COMMAND_STR[command.type];
-        if (command.info1 >= 0 && command.type != END) {
+        if (command.info1 != -INF && command.type != END) {
             os << " " << command.info1;
         }
-        if (command.info2 >= 0 && command.type != FOR) {
+        if (command.info2 != -INF && command.type != FOR) {
             os << " " << command.info2;
         }
         return os;
@@ -211,11 +214,14 @@ struct Commands {
 
     Commands() : cost(0) {}
 
-    void addCommand(CommandType type, int info1 = -1, int info2 = -1) {
+    void addCommand(CommandType type, int info1 = -INF, int info2 = -INF) {
         if (type == R || type == L) {
-            assert(info1 != -1);
+            assert(info1 != -INF);
+            if (info1 == 0) {
+                return;
+            }
             for (int _ = 0; _ < info1; _++) {
-                commands.emplace_back(type, forStartIds, commands, -1, info2);
+                commands.emplace_back(type, forStartIds, commands, -INF, info2);
             }
             cost += commands.back().getCost() * info1;
         } else {
@@ -224,6 +230,44 @@ struct Commands {
             }
             commands.emplace_back(type, forStartIds, commands, info1, info2);
             cost += commands.back().getCost();
+        }
+    }
+    void addCommandRF(int rnum, int fnum) {
+        if (fnum == 0) return;
+        if (rnum == 0) {
+            commands.emplace_back(F, forStartIds, commands, fnum, -INF);
+            cost += 1;
+        } else if (rnum == 1) {
+            commands.emplace_back(R, forStartIds, commands, -INF, -INF);
+            commands.emplace_back(F, forStartIds, commands, fnum, -INF);
+            cost += 2;
+        } else if (rnum == 2) {
+            commands.emplace_back(R, forStartIds, commands, -INF, -INF);
+            commands.emplace_back(R, forStartIds, commands, -INF, -INF);
+            commands.emplace_back(F, forStartIds, commands, fnum, -INF);
+            cost += 3;
+        } else if (rnum == 3) {
+            commands.emplace_back(L, forStartIds, commands, -INF, -INF);
+            commands.emplace_back(B, forStartIds, commands, fnum, -INF);
+            cost += 2;
+        } else if (rnum == 4) {
+            commands.emplace_back(B, forStartIds, commands, fnum, -INF);
+            cost += 1;
+        } else if (rnum == 5) {
+            commands.emplace_back(R, forStartIds, commands, -INF, -INF);
+            commands.emplace_back(B, forStartIds, commands, fnum, -INF);
+            cost += 2;
+        } else if (rnum == 6) {
+            commands.emplace_back(L, forStartIds, commands, -INF, -INF);
+            commands.emplace_back(L, forStartIds, commands, -INF, -INF);
+            commands.emplace_back(F, forStartIds, commands, fnum, -INF);
+            cost += 3;
+        } else if (rnum == 7) {
+            commands.emplace_back(L, forStartIds, commands, -INF, -INF);
+            commands.emplace_back(F, forStartIds, commands, fnum, -INF);
+            cost += 2;
+        } else {
+            assert(false);
         }
     }
 
@@ -242,14 +286,30 @@ struct Commands {
  */
 struct Simulator {
     vector<vector<bool>> g;
-    int grid_cost;
-    int commands_cost;
-    int total_cost;
+    int grid_cost, commands_cost, total_cost;
 
-    Simulator(const Commands& commands)
-        : g(N, vector<bool>(N, false)),
+    int initr, initc, initd;
+    bool initpen;
+    int initnest;
+
+    int lastr, lastc, lastd;
+    int success, fail;
+
+    Simulator(const Commands& commands, const vector<vector<bool>>& painted,
+              int initr, int initc, int initd, bool initpen, int initnest)
+        : g(painted),
           commands_cost(commands.cost),
-          total_cost(-1) {
+          total_cost(-1),
+          initr(initr),
+          initc(initc),
+          initd(initd),
+          initpen(initpen),
+          initnest(initnest),
+          success(0),
+          fail(0) {
+        assert(int(painted.size()) == N);
+        assert(0 <= initr && initr < N && 0 <= initc && initc < N &&
+               0 <= initd && initd < dirLen);
         reflectCommands(commands.commands);
     }
 
@@ -264,13 +324,11 @@ struct Simulator {
 
    private:
     void reflectCommands(const vector<Command>& commands) {
-        int r = 0;
-        int c = 0;
-        int dir = 0;
-        int success = 0;
-        int fail = 0;
-        bool isPenUp = true;
-        int nest = 0;
+        int r = initr;
+        int c = initc;
+        int dir = initd;
+        bool isPenUp = initpen;
+        int nest = initnest;
 
         unordered_map<int, int> loop_counter;
         for (int commandId = 0; commandId < int(commands.size()); commandId++) {
@@ -361,8 +419,183 @@ struct Simulator {
         }
         grid_cost = (TARGET_NUM - success + fail) * 10;
         total_cost = grid_cost + commands_cost;
+        lastr = r;
+        lastc = c;
+        lastd = dir;
     }
 };
+
+// Bitset genBitsetFromGrid(int d, int r, int c,
+//                          const vector<vector<bool>>& _grid) {
+//     vector<vector<bool>> grid = _grid;
+//     for (auto& row : grid) {
+//         rotate(row.begin(), row.begin() + c, row.end());
+//     }
+//     rotate(grid.begin(), grid.begin() + r, grid.end());
+
+//     Bitset ret(0);
+//     int nowr = 0;
+//     int nowc = 0;
+//     for (int r = 0; r < N; r++, nowr += dr[((d + 1) * 2) % dirLen],
+//              nowc += dc[((d + 1) * 2) % dirLen]) {
+//         for (int c = 0; c < N; c++, nowr += dr[d * 2], nowc += dc[d * 2]) {
+//             nowr = (nowr + N) % N;
+//             nowc = (nowc + N) % N;
+//             ret[to_idx(r, c)] = grid[nowr][nowc];
+//         }
+//     }
+
+//     return ret;
+// }
+
+// /**
+//  * @brief d*90度回転してr行c列ずらした盤面を前計算しておく
+//  * @note 参照のみなら、データの取得は必ず以下の形で行うこと
+//  *       const Bitset& g = bitsetbank.getBitset(d, r, c);
+//  */
+// struct BitsetBank {
+//     vector<vector<vector<Bitset>>> _bitsets;
+
+//     BitsetBank() {}
+
+//     void init() {
+//         assert(_bitsets.empty());
+//         _bitsets.resize(4, vector<vector<Bitset>>(N, vector<Bitset>(N)));
+//         for (int d = 0; d < 4; d++) {
+//             for (int r = 0; r < N; r++) {
+//                 for (int c = 0; c < N; c++) {
+//                     _bitsets[d][r][c] = genBitsetFromGrid(d, r, c, GRID);
+//                 }
+//             }
+//         }
+//     }
+
+//     /**
+//      * @param d only [0,4)  This is different from the problem's rotation
+//      system
+//      * @param r accept N or more
+//      * @param c accept N or more
+//      */
+//     const Bitset& getBitset(int d, int r, int c) const {
+//         assert(0 <= r && 0 <= c);
+//         r %= N;
+//         c %= N;
+//         assert(0 <= d && d < 4);  // RDLU
+//         return _bitsets[d][r][c];
+//     }
+// };
+// BitsetBank bb;
+
+struct ForLoopInfo {
+    int sr = -1;
+    int sc = -1;
+    int sd = -1;
+    int dr = -1;
+    int dc = -1;
+    int dd = -1;
+    int g_and = -1;
+    int g_or = -1;
+
+    ForLoopInfo(int sr, int sc, int sd, int dr, int dc, int dd, int g_and,
+                int g_or)
+        : sr(sr),
+          sc(sc),
+          sd(sd),
+          dr(dr),
+          dc(dc),
+          dd(dd),
+          g_and(g_and),
+          g_or(g_or) {
+        assert(g_and <= g_or);
+    };
+
+    double value() const {
+        return (1 - double(g_and) / double(TARGET_NUM)) *
+               (double(g_or) / double(g_and));
+    }
+
+    bool operator<(const ForLoopInfo& rhs) { return value() < rhs.value(); }
+
+    friend ostream& operator<<(ostream& os, const ForLoopInfo& x) {
+        return os << "["
+                  << "sr:" << x.sr << ", "
+                  << "sc:" << x.sc << ", "
+                  << "sd:" << x.sd << ", "
+                  << "dr:" << x.dr << ", "
+                  << "dc:" << x.dc << ", "
+                  << "dd:" << x.dd << "]";
+    }
+};
+
+// auto findBestRect() {
+//     debug(GRID, "grid");
+//     vector<ForLoopInfo> cands;
+//     int loopx = 4;  //?
+//     int loop_cnt = 0;
+//     for (int sr = 0; sr < N; sr++) {
+//         for (int sc = 0; sc < N; sc++) {
+//             if (!GRID[sr][sc]) continue;
+//             for (int sd = 0; sd < 4; sd++) {
+//                 for (int dr = 0; dr < N; dr++) {
+//                     for (int dc = (dr ? 0 : 1); dc < N; dc++) {
+//                         for (int dd = 0; dd < 4; dd++) {
+//                             loop_cnt++;
+//                             Bitset g_and = bb.getBitset(sd, sr, sc);
+//                             for (int inner_loop = 1; inner_loop < loopx;
+//                                  inner_loop++) {
+//                                 const Bitset& g2 = bb.getBitset(
+//                                     (sd + dd * inner_loop) % 4,
+//                                     sr + dr * inner_loop, sc + dc *
+//                                     inner_loop);
+//                                 g_and &= g2;
+//                             }
+//                             if (sr == 0 && sc == 6 && sd == 3 && dr == 7 &&
+//                                 dc == 0 && dd == 3) {
+//                                 debug(g_and);
+//                             }
+//                             int g_and_count = g_and.count();
+//                             if (g_and[0] && g_and_count > TARGET_NUM / loopx)
+//                             {
+//                                 vector<vector<bool>> g_and_vvb(N,
+//                                                                vector<bool>(N));
+//                                 for (int r = 0; r < N; r++) {
+//                                     for (int c = 0; c < N; c++) {
+//                                         g_and_vvb[r][c] = g_and[to_idx(r,
+//                                         c)];
+//                                     }
+//                                 }
+//                                 Bitset g_or = g_and;
+//                                 for (int inner_loop = 1; inner_loop < loopx;
+//                                      inner_loop++) {
+//                                     const Bitset& g2 = genBitsetFromGrid(
+//                                         (sd + dd * inner_loop) % 4,
+//                                         (sr + dr * inner_loop + N) % N,
+//                                         (sc + dc * inner_loop + N) % N,
+//                                         g_and_vvb);
+//                                     g_or |= g2;
+//                                 }
+//                                 if (sr == 0 && sc == 6 && sd == 3 && dr == 7
+//                                 &&
+//                                     dc == 0 && dd == 3) {
+//                                     debug(g_or);
+//                                 }
+//                                 int g_or_count = g_or.count();
+//                                 cands.emplace_back(sr, sc, sd, dr, dc, dd,
+//                                                    g_and_count, g_or_count);
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+//     debug(loop_cnt);
+//     debug(cands.size());
+//     sort(cands.begin(), cands.end());
+//     debug(cands.front());
+//     debug(cands.back());
+//     assert(false);
+// }
 
 bool simple_check(int sr, int sc, int f1, int r1) {
     assert(GRID[sr][sc]);
@@ -376,49 +609,211 @@ bool simple_check(int sr, int sc, int f1, int r1) {
 
 void solve() {
     Commands best_commands;
-    int best_score = INF;
 
-    for (int sr = 0; sr < N; sr++) {
-        for (int sc = 0; sc < N; sc++) {
-            if (!GRID[sr][sc]) continue;
+    bool isPenUp = true;
+    int lastr = 0, lastc = 0, lastd = 0;
+    vector<vector<bool>> painted(N, vector<bool>(N, false));
+    int num_painted = 0;
 
-            for (int f1 = 0; f1 < N; f1++) {
-                for (int r1 = 0; r1 < (f1 ? dirLen : 1); r1++) {
-                    if (!simple_check(sr, sc, f1, r1)) continue;
+    int loop_cnt = 0;
 
-                    for (int loopx1 = 2; loopx1 <= 10; loopx1++) {
-                        for (int f2 = 0; f2 < N / 5; f2++) {
-                            for (int r2 = 0; r2 < (f2 ? dirLen : 1); r2++) {
-                                // Commands commands;
-                                // commands.addCommand(J, sr, sc);
-                                // commands.addCommand(D);
-                                // commands.addCommand(FOR, loopx1);
-                                // {
-                                //     commands.addCommand(R, r1);
-                                //     commands.addCommand(F, f1);
-                                //     commands.addCommand(R, r2);
-                                //     commands.addCommand(F, f2);
-                                // }
-                                // commands.addCommand(END);
+    const int TL = (N >= 20 ? 4500 : 7000);
+    const int TL2 = 9500;
 
-                                // Simulator sim(commands);
+    while (num_painted < TARGET_NUM && ++loop_cnt < 100) {
+        bool timeup = (timer.ms() > TL);
+        int inner_best_score = INF;
+        Commands inner_best_commands;
+        vector<vector<bool>> best_painted;
+        // int best_sr = -1;
+        // int best_sc = -1;
+        // int best_sd = -1;
+        // int best_r1 = -1;
+        // int best_f1 = -1;
+        int best_loopx1 = -1;
+        int best_lastr = -1;
+        int best_lastc = -1;
+        int best_lastd = -1;
+        for (int sr = 0; sr < N; sr++) {
+            for (int sc = 0; sc < N; sc++) {
+                if (!GRID[(lastr + sr) % N][(lastc + sc) % N]) continue;
+                for (int sd = 0; sd < dirLen; sd++) {
+                    for (int r1 = 0; r1 < dirLen; r1++) {
+                        for (int f1 = 0; f1 < N; f1 += (N > 20 ? 2 : 1)) {
+                            if ((sd != 0 || f1 != 0 || r1 != 0) && timeup) {
+                                break;
+                            }
+                            if (f1 == 0 && r1 > 0) continue;
+                            if (loop_cnt == 1 && !simple_check(sr, sc, f1, r1))
+                                break;
+                            for (int loopx1 = 2 - 1; loopx1 <= 10; loopx1++) {
+                                Commands commands;
+                                if (sr != 0 || sc != 0) {
+                                    commands.addCommand(J, sr, sc);
+                                }
+                                if (isPenUp) {
+                                    commands.addCommand(D);
+                                }
 
-                                // if (chmin(best_score, sim.grid_cost)) {
-                                //     swap(best_commands, commands);
-                                // }
+                                if (loopx1 >= 2) {
+                                    commands.addCommand(FOR, loopx1);
+                                }
+                                { commands.addCommandRF(r1, f1); }
+                                if (loopx1 >= 2) {
+                                    commands.addCommand(END);
+                                }
+
+                                Simulator sim(commands, painted, lastr, lastc,
+                                              lastd, isPenUp, 0);
+
+                                if (sim.success &&
+                                    chmin(inner_best_score,
+                                          sim.total_cost + sim.fail * 1000)) {
+                                    swap(inner_best_commands, commands);
+                                    swap(best_painted, sim.g);
+                                    best_lastr = sim.lastr;
+                                    best_lastc = sim.lastc;
+                                    best_lastd = sim.lastd;
+                                    // best_sr = sr;
+                                    // best_sc = sc;
+                                    // best_sd = sd;
+                                    // best_r1 = r1;
+                                    // best_f1 = f1;
+                                    best_loopx1 = loopx1;
+                                } else if (sim.fail) {
+                                    break;  // loopx
+                                }
                             }
                         }
                     }
                 }
             }
         }
+
+        if (inner_best_score == INF) {
+            break;
+        }
+        if (best_loopx1 == 1) {
+            break;
+        }
+
+        for (auto& m : inner_best_commands.commands) {
+            if (m.type == D) isPenUp = false;
+            if (m.type == U) isPenUp = true;
+            best_commands.addCommand(m.type,
+                                     (m.type == L || m.type == R)
+                                         ? 1
+                                         : (m.type == END ? -INF : m.info1),
+                                     m.type == FOR ? -INF : m.info2);
+        }
+        swap(painted, best_painted);
+        num_painted = 0;
+        for (int r = 0; r < N; r++) {
+            for (int c = 0; c < N; c++) {
+                num_painted += int(painted[r][c]);
+            }
+        }
+        lastr = best_lastr;
+        lastc = best_lastc;
+        lastd = best_lastd;
+        debug("#");
     }
 
-    debug(cnt, cnt2);
-    assert(false);
+    //
+    assert(loop_cnt > 0);
+    //
+
+    while (num_painted < TARGET_NUM && ++loop_cnt < 100) {
+        bool timeup = (timer.ms() > TL2);
+        int inner_best_score = INF;
+        Commands inner_best_commands;
+        vector<vector<bool>> best_painted;
+        // int best_sr = -1;
+        // int best_sc = -1;
+        // int best_sd = -1;
+        // int best_r1 = -1;
+        // int best_f1 = -1;
+        int best_loopx1 = -1;
+        int best_lastr = -1;
+        int best_lastc = -1;
+        int best_lastd = -1;
+        for (int sr = 0; sr < N; sr++) {
+            for (int sc = 0; sc < N; sc++) {
+                if (!GRID[(lastr + sr) % N][(lastc + sc) % N]) continue;
+
+                for (int r1 = 0; r1 < dirLen; r1++) {
+                    for (int f1 = 0; f1 < N; f1 += (N > 20 ? 2 : 1)) {
+                        if ((f1 != 0 || r1 != 0) && timeup) {
+                            break;
+                        }
+                        if (f1 == 0 && r1 > 0) continue;
+
+                        Commands commands;
+                        if (sr != 0 || sc != 0) {
+                            commands.addCommand(J, sr, sc);
+                        }
+                        if (isPenUp) {
+                            commands.addCommand(D);
+                        }
+                        commands.addCommandRF(r1, f1);
+
+                        Simulator sim(commands, painted, lastr, lastc, lastd,
+                                      isPenUp, 0);
+
+                        if (sim.success &&
+                            chmin(inner_best_score,
+                                  sim.total_cost + sim.fail * 1000)) {
+                            swap(inner_best_commands, commands);
+                            swap(best_painted, sim.g);
+                            best_lastr = sim.lastr;
+                            best_lastc = sim.lastc;
+                            best_lastd = sim.lastd;
+                            // best_sr = sr;
+                            // best_sc = sc;
+                            // best_sd = sd;
+                            // best_r1 = r1;
+                            // best_f1 = f1;
+                            // best_loopx1 = loopx1;
+                        } else if (sim.fail) {
+                            break;  // loopx
+                        }
+                    }
+                }
+            }
+        }
+
+        if (inner_best_score == INF) {
+            break;
+        }
+        if (best_loopx1 == 1) {
+            break;
+        }
+
+        for (auto& m : inner_best_commands.commands) {
+            if (m.type == D) isPenUp = false;
+            if (m.type == U) isPenUp = true;
+            best_commands.addCommand(m.type,
+                                     (m.type == L || m.type == R)
+                                         ? 1
+                                         : (m.type == END ? -INF : m.info1),
+                                     m.type == FOR ? -INF : m.info2);
+        }
+        swap(painted, best_painted);
+        num_painted = 0;
+        for (int r = 0; r < N; r++) {
+            for (int c = 0; c < N; c++) {
+                num_painted += int(painted[r][c]);
+            }
+        }
+        lastr = best_lastr;
+        lastc = best_lastc;
+        lastd = best_lastd;
+        debug("#");
+    }
 
     debug(best_commands);
-    Simulator sim(best_commands);
+    vector<vector<bool>> none_painted(N, vector<bool>(N, false));
+    Simulator sim(best_commands, none_painted, 0, 0, 0, true, 0);
     sim.report();
     cout << best_commands << endl;
 }
