@@ -91,10 +91,12 @@ string with_fill(int n,int num=3,char space=' '){string s=to_string(n);return st
 }// namespace esc
 // clang-format on
 
+using Bitset = bitset<900>;
+
 int N;                                    // grid size
 int JC;                                   // JUMP COST
 int FC;                                   // FOR COST
-vector<vector<bool>> GRID;                // N*N
+Bitset GRID;                              // N*N
 unordered_map<int, int> TARGET_IDXS;      // TARGET_IDXS[to_idx(r,c)] = idx
 unordered_map<int, int> REV_TARGET_IDXS;  // REV_TARGET_IDXS[idx] = rc
 int TARGET_NUM;
@@ -109,14 +111,14 @@ inline pair<int, int> to_rc(int idx) { return {idx / N, idx % N}; };
 
 void read_input() {
     cin >> N >> JC >> FC;
-    GRID.resize(N, vector<bool>(N));
+    GRID.reset();
     TARGET_NUM = 0;
     for (int r = 0; r < N; r++) {
         for (int c = 0; c < N; c++) {
             char a;
             cin >> a;
-            GRID[r][c] = (a == '#');
-            if (GRID[r][c]) {
+            GRID[to_idx(r, c)] = (a == '#');
+            if (GRID[to_idx(r, c)]) {
                 TARGET_IDXS[to_idx(r, c)] = TARGET_NUM;
                 REV_TARGET_IDXS[TARGET_NUM] = to_idx(r, c);
                 TARGET_NUM++;
@@ -124,8 +126,6 @@ void read_input() {
         }
     }
 }
-
-using Bitset = bitset<900>;
 
 ostream& operator<<(ostream& os, const Bitset& b) {
     os << "----" << endl;
@@ -299,7 +299,7 @@ struct Commands {
  *        see the provided program (RobotPainterTester.java)
  */
 struct Simulator {
-    vector<vector<bool>> g;
+    Bitset g;
     int grid_cost, commands_cost, total_cost;
 
     int initr, initc, initd;
@@ -317,8 +317,7 @@ struct Simulator {
      */
     Simulator(const Commands& commands, const vector<vector<bool>>& painted,
               int initr, int initc, int initd, bool initpen, int initnest)
-        : g(painted),
-          commands_cost(commands.cost),
+        : commands_cost(commands.cost),
           total_cost(-1),
           initr(initr),
           initc(initc),
@@ -329,10 +328,17 @@ struct Simulator {
           fail(0) {
         assert(0 <= initr && initr < N && 0 <= initc && initc < N &&
                0 <= initd && initd < dirLen);
-        if (g.size() == 1 && g[0].size() == 1 && g[0][0] == false) {
-            g.assign(N, vector<bool>(N, false));
+        if (painted.size() == 1 && painted[0].size() == 1 &&
+            painted[0][0] == false) {
+            g.reset();
         } else {
-            assert(int(g.size()) == N && int(g[0].size()) == N);
+            assert(false);
+            // assert(int(painted.size()) == N && int(painted[0].size()) == N);
+            // for (int r = 0; r < N; r++) {
+            //     for (int c = 0; c < N; c++) {
+            //         g[to_idx(r, c)] = painted[r][c];
+            //     }
+            // }
         }
         reflectCommands(commands.commands);
     }
@@ -373,50 +379,50 @@ struct Simulator {
             } else if (m.type == D) {
                 assert(isPenUp);
                 isPenUp = false;
-                if (!g[r][c]) {
-                    if (!GRID[r][c]) {
+                if (!g[to_idx(r, c)]) {
+                    if (!GRID[to_idx(r, c)]) {
                         fail++;
                     } else {
                         success++;
                     }
-                    g[r][c] = true;
+                    g[to_idx(r, c)] = true;
                 }
             } else if (m.type == F) {
                 for (int i = 0; i < m.info1; i++) {
                     r = (r + DR[dir] + N) % N;
                     c = (c + DC[dir] + N) % N;
-                    if (!isPenUp && !g[r][c]) {
-                        if (!GRID[r][c]) {
+                    if (!isPenUp && !g[to_idx(r, c)]) {
+                        if (!GRID[to_idx(r, c)]) {
                             fail++;
                         } else {
                             success++;
                         }
-                        g[r][c] = true;
+                        g[to_idx(r, c)] = true;
                     }
                 }
             } else if (m.type == B) {
                 for (int i = 0; i < m.info1; i++) {
                     r = (r - DR[dir] + N) % N;
                     c = (c - DC[dir] + N) % N;
-                    if (!isPenUp && !g[r][c]) {
-                        if (!GRID[r][c]) {
+                    if (!isPenUp && !g[to_idx(r, c)]) {
+                        if (!GRID[to_idx(r, c)]) {
                             fail++;
                         } else {
                             success++;
                         }
-                        g[r][c] = true;
+                        g[to_idx(r, c)] = true;
                     }
                 }
             } else if (m.type == J) {
                 r = (r + m.info1 + N) % N;
                 c = (c + m.info2 + N) % N;
-                if (!isPenUp && !g[r][c]) {
-                    if (!GRID[r][c]) {
+                if (!isPenUp && !g[to_idx(r, c)]) {
+                    if (!GRID[to_idx(r, c)]) {
                         fail++;
                     } else {
                         success++;
                     }
-                    g[r][c] = true;
+                    g[to_idx(r, c)] = true;
                 }
             } else if (m.type == FOR) {
                 if (loop_counter.at(commandId) == -1) {
@@ -468,7 +474,7 @@ struct CandInfo {
         commands_cost = sim.commands_cost;
         for (int r = 0; r < N; r++) {
             for (int c = 0; c < N; c++) {
-                if (sim.g[r][c]) {
+                if (sim.g[to_idx(r, c)]) {
                     painted_tiles[to_idx(r, c)] = true;
                 }
             }
@@ -496,10 +502,11 @@ int get_direction(int dr, int dc) {
 }
 
 bool simple_check(int sr, int sc, int sd, int f1, int r1) {
-    assert(GRID[sr][sc]);
+    assert(GRID[to_idx(sr, sc)]);
     int d = (sd + r1) % dirLen;
     for (int step = 1; step <= f1; step++) {
-        if (!GRID[(sr + step * DR[d] + N) % N][(sc + step * DC[d] + N) % N]) {
+        if (!GRID[to_idx((sr + step * DR[d] + N) % N,
+                         (sc + step * DC[d] + N) % N)]) {
             return false;
         }
     }
@@ -523,10 +530,10 @@ bool is_good_edge(int f, int sr, int sc, int sd) {
     if (f >= loop - 1) {
         return simple_check(sr, sc, sd, f, 0);
     } else {
-        return !GRID[(sr + DR[(sd + 4) % dirLen] + N) % N]
-                    [(sc + DC[(sd + 4) % dirLen] + N) % N] &&
-               !GRID[(sr + DR[sd] * (f + 1) + 2 * N) % N]
-                    [(sc + DC[sd] * (f + 1) + 2 * N) % N];
+        return !GRID[to_idx((sr + DR[(sd + 4) % dirLen] + N) % N,
+                            (sc + DC[(sd + 4) % dirLen] + N) % N)] &&
+               !GRID[to_idx((sr + DR[sd] * (f + 1) + 2 * N) % N,
+                            (sc + DC[sd] * (f + 1) + 2 * N) % N)];
     }
 }
 
@@ -539,7 +546,7 @@ vector<CandInfo> enumerate_candidates() {
         // FOR RFRF
         for (int sr = 0; sr < N; sr++) {
             for (int sc = 0; sc < N; sc++) {
-                if (!GRID[sr][sc]) continue;
+                if (!GRID[to_idx(sr, sc)]) continue;
                 for (int sd = 0; sd < dirLen; sd++) {
                     for (int r1 = 0; r1 < dirLen; r1++) {
                         for (int f1 = 0; f1 < N; f1++) {
@@ -591,7 +598,7 @@ vector<CandInfo> enumerate_candidates() {
         // FOR RF
         for (int sr = 0; sr < N; sr++) {
             for (int sc = 0; sc < N; sc++) {
-                if (!GRID[sr][sc]) continue;
+                if (!GRID[to_idx(sr, sc)]) continue;
                 for (int sd = 0; sd < dirLen; sd++) {
                     for (int r1 = 0; r1 < dirLen; r1++) {
                         for (int f1 = 0; f1 < N; f1++) {
@@ -637,7 +644,7 @@ vector<CandInfo> enumerate_candidates() {
     // RF
     for (int sr = 0; sr < N; sr++) {
         for (int sc = 0; sc < N; sc++) {
-            if (!GRID[sr][sc]) continue;
+            if (!GRID[to_idx(sr, sc)]) continue;
             for (int sd = 0; sd < dirLen; sd++) {
                 for (int f1 = 0; f1 < N; f1++) {
                     if (!is_good_edge(f1, sr, sc, sd)) {
@@ -680,7 +687,7 @@ vector<CandInfo> enumerate_candidates() {
             if (timer.ms() > TL_ENUM) {
                 break;
             }
-            if (!GRID[sr][sc]) continue;
+            if (!GRID[to_idx(sr, sc)]) continue;
             for (int sd = 0; sd < dirLen; sd++) {
                 for (int dr = 0; dr < N; dr++) {
                     for (int dc = 0; dc < N; dc++) {
@@ -835,7 +842,7 @@ auto solve() {
 
             for (int r = 0; r < N; r++) {
                 for (int c = 0; c < N; c++) {
-                    if (sim.g[r][c] && !painted[to_idx(r, c)]) {
+                    if (sim.g[to_idx(r, c)] && !painted[to_idx(r, c)]) {
                         num_painted++;
                         painted[to_idx(r, c)] = true;
                     }
