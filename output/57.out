@@ -1,0 +1,19 @@
+18
+J 4 0
+D
+FOR 6
+B 7
+R
+B 5
+END
+J -1 -1
+F 7
+J -4 -3
+F 3
+R
+J -4 1
+FOR 4
+R
+B 2
+F 4
+END

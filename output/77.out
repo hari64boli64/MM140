@@ -1,0 +1,153 @@
+152
+J 6 13
+D
+F 5
+R
+R
+F 5
+J 6 -6
+F 5
+R
+J 4 8
+F 6
+J -1 -10
+FOR 7
+F 1
+J 14 16
+END
+J 9 -1
+FOR 3
+L
+F 3
+END
+J -6 5
+F 5
+R
+F 3
+J 5 -17
+F 4
+R
+FOR 10
+R
+B 1
+END
+J 12 -2
+F 4
+J -13 16
+F 3
+R
+F 3
+L
+F 3
+J -12 5
+F 3
+L
+J 3 0
+FOR 5
+F 1
+J 14 16
+END
+J -16 -18
+F 4
+R
+J 1 -16
+F 3
+J 12 -21
+F 4
+L
+F 3
+L
+J 15 -13
+F 4
+J -10 15
+FOR 5
+F 1
+J 6 7
+END
+R
+J 2 5
+FOR 5
+F 1
+J 14 16
+END
+J -6 8
+F 4
+J 1 2
+F 3
+J -2 7
+F 3
+J -1 5
+F 2
+J 1 4
+F 4
+R
+F 2
+J 7 -2
+F 2
+J 0 11
+F 2
+J -6 -10
+FOR 5
+J 15 15
+END
+F 1
+R
+J 7 9
+F 2
+J -4 -3
+F 3
+J 4 -5
+F 4
+J 7 4
+F 2
+J 6 -2
+F 5
+L
+J -9 -10
+F 1
+J 3 12
+F 1
+J 6 -9
+F 2
+J 3 -1
+F 1
+J 3 7
+F 2
+R
+F 1
+R
+J -3 -6
+F 1
+R
+J -15 16
+F 3
+J -13 1
+F 1
+J 6 1
+F 1
+J -5 -1
+FOR 5
+J 4 4
+END
+J 10 7
+FOR 5
+J 12 0
+END
+J -7 -6
+FOR 3
+J 0 5
+END
+J 12 -17
+FOR 4
+J 0 13
+END
+J -11 -3
+J 0 4
+J 1 2
+J 0 4
+J 2 -3
+J 6 7
+J 5 -20
+J 1 14
+J 3 0
+J 2 -8

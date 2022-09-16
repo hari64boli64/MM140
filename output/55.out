@@ -1,0 +1,21 @@
+20
+J 4 0
+D
+FOR 10
+F 7
+R
+R
+F 4
+END
+R
+J -5 -2
+F 1
+J 4 0
+FOR 6
+R
+B 1
+END
+FOR 2
+L
+B 2
+END

@@ -1,0 +1,36 @@
+35
+R
+D
+FOR 9
+F 3
+J 8 10
+END
+FOR 7
+F 1
+L
+B 5
+END
+FOR 4
+B 1
+R
+B 3
+END
+R
+J 2 7
+FOR 4
+R
+B 3
+L
+B 2
+END
+L
+L
+L
+FOR 2
+R
+B 2
+F 5
+END
+FOR 2
+F 1
+END

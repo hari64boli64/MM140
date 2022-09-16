@@ -1,0 +1,63 @@
+62
+R
+J 5 13
+D
+FOR 2
+L
+B 13
+END
+J -3 6
+F 14
+J 9 -3
+F 12
+J -5 9
+F 9
+J -10 9
+FOR 3
+R
+F 3
+END
+R
+R
+R
+F 4
+J -5 1
+F 3
+J -10 -9
+F 5
+L
+J -12 -10
+FOR 4
+F 3
+J 2 5
+END
+R
+R
+R
+F 4
+J -5 12
+F 3
+J -7 11
+F 4
+J 5 0
+F 3
+FOR 10
+J 3 0
+END
+L
+J 11 3
+F 2
+J -2 -5
+FOR 3
+R
+F 1
+END
+J 1 6
+FOR 4
+R
+F 1
+END
+J -10 3
+J 1 -2
+J 6 -1
+J 2 -8

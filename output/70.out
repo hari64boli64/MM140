@@ -1,0 +1,79 @@
+78
+D
+FOR 2
+L
+B 19
+END
+J -13 9
+FOR 3
+R
+B 22
+END
+FOR 2
+L
+B 21
+END
+L
+J 5 -13
+FOR 3
+R
+F 20
+END
+J 7 -20
+FOR 4
+L
+B 10
+END
+R
+F 15
+L
+J 4 8
+FOR 3
+R
+F 11
+END
+J -2 -4
+FOR 3
+R
+B 13
+END
+J -8 -13
+F 15
+J -20 8
+F 17
+L
+J -16 -2
+FOR 3
+R
+F 10
+END
+L
+FOR 2
+L
+B 5
+END
+J 5 -19
+FOR 3
+R
+F 12
+END
+J 0 5
+F 6
+J -7 -7
+FOR 3
+R
+R
+F 4
+END
+J -4 -6
+FOR 2
+L
+F 4
+END
+J -3 4
+FOR 3
+L
+B 15
+END
+J -6 6
+F 9

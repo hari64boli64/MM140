@@ -1,0 +1,24 @@
+23
+J 1 4
+D
+FOR 4
+L
+B 9
+END
+R
+FOR 2
+L
+F 3
+R
+B 7
+END
+F 9
+L
+FOR 2
+L
+F 6
+END
+J -1 -5
+F 5
+L
+F 9

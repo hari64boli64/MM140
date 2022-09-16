@@ -1,0 +1,33 @@
+32
+J 0 4
+D
+FOR 4
+L
+F 10
+R
+F 1
+END
+R
+FOR 3
+R
+F 4
+B 6
+END
+FOR 3
+R
+F 5
+L
+L
+F 2
+END
+J 3 -1
+FOR 2
+F 3
+R
+F 1
+END
+R
+J 3 5
+F 5
+J -8 -4
+J 0 7

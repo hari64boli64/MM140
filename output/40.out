@@ -1,0 +1,41 @@
+40
+J 4 4
+D
+FOR 4
+R
+R
+F 11
+R
+F 5
+END
+J -3 2
+FOR 3
+L
+B 9
+L
+B 4
+END
+L
+J -7 7
+FOR 2
+L
+B 4
+R
+F 8
+END
+FOR 2
+B 6
+L
+F 5
+END
+J -4 9
+F 9
+L
+J 6 -2
+FOR 2
+L
+F 5
+L
+B 4
+END
+J -1 -6

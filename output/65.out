@@ -1,0 +1,47 @@
+46
+J 2 0
+D
+F 12
+J -2 -9
+FOR 2
+L
+F 11
+END
+L
+FOR 2
+R
+F 7
+END
+L
+F 10
+J 4 -5
+F 11
+L
+FOR 2
+L
+B 6
+END
+R
+R
+FOR 3
+L
+L
+F 8
+END
+L
+L
+J -1 -9
+F 11
+FOR 2
+L
+B 4
+END
+R
+J -11 -5
+F 5
+R
+FOR 5
+R
+B 1
+END
+J 8 -5

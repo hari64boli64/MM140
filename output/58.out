@@ -1,0 +1,22 @@
+21
+J 7 2
+D
+F 5
+FOR 3
+B 5
+L
+F 1
+END
+FOR 3
+L
+F 2
+B 4
+END
+L
+J -1 -1
+F 6
+L
+J -6 0
+F 2
+J 0 3
+J 4 2

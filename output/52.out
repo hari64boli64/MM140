@@ -1,0 +1,29 @@
+28
+R
+J 0 3
+D
+FOR 10
+F 6
+R
+R
+F 10
+END
+J 2 5
+FOR 3
+R
+R
+F 8
+END
+J 3 1
+F 6
+J -6 1
+F 5
+R
+R
+J -2 -9
+F 8
+R
+J -9 6
+F 8
+J -2 -1
+F 2

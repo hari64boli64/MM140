@@ -1,0 +1,94 @@
+93
+R
+R
+J 9 2
+D
+FOR 3
+R
+F 20
+END
+R
+J 5 -4
+FOR 10
+F 9
+J 9 3
+END
+J -5 2
+FOR 2
+L
+F 23
+END
+J 5 -11
+F 18
+J 4 -6
+F 19
+J -12 -1
+F 21
+J 1 1
+F 22
+R
+F 13
+L
+L
+F 18
+R
+FOR 9
+B 2
+END
+J -7 4
+F 21
+R
+F 13
+L
+J -3 10
+F 21
+J -5 6
+F 21
+J 2 -21
+F 21
+R
+F 14
+L
+J -9 -10
+F 21
+R
+F 13
+J -8 -14
+F 20
+J -9 -7
+F 13
+J -8 -2
+F 13
+R
+R
+J 2 -7
+F 3
+J -2 2
+F 3
+L
+L
+J -4 -9
+F 13
+R
+F 1
+J 15 4
+F 12
+R
+J 14 4
+F 1
+J 1 2
+F 1
+FOR 2
+J 0 18
+END
+J -14 15
+FOR 6
+L
+F 2
+END
+J -3 -8
+J 1 17
+J 2 -14
+J 9 5
+J 6 1
+J 1 11
