@@ -22,7 +22,7 @@ constexpr int MOD = 1000000007;using mint=static_modint<MOD>;vector<mint>mint_fa
 /*x s.t. x^2 ≡ a (mod Prime) or -1*/mint modsqrt(mint a){long long p=mint::mod();if(a.val()==1)return a;if(a.pow((p-1)>>1).val()!=1)return -1;mint b=1,one=1;while(b.pow((p-1)>>1).val()==1)b+=one;long long m=p-1,e=0;while(m%2==0)m>>=1,e++;mint x=a.pow((m-1)>>1);mint y=a*x*x;x*=a;mint z=b.pow(m);while(y!=1){long long j=0;mint t=y;while(t!=one)j++,t*=t;z=z.pow(1ll<<(e-j-1));x*=z;z*=z;y*=z;e=j;}return x;}mint nCk(int n,int k){if(k<0||n<k)return mint(0);return modfact(n)*(modfact(k)).inv()*modfact(n-k).inv();}
 /*min x s.t. a^x ≡ b (mod M) or -1*/int modlog(mint a,mint b){if(gcd(a.mod(),a.val())!=1){cout<<"\033[1;31mCAUTION: m must be coprime to a.\033[0m"<<endl;assert(false);}long long m=mint::mod();long long sq=round(sqrt(m))+1;unordered_map<long long,long long>ap;mint re=a;for(long long r=1;r<sq;r++){if(ap.find(re.val())==ap.end())ap[re.val()]=r;re*=a;}mint A=a.inv().pow(sq);re=b;for(mint q=0;q.val()<sq;q++){if(re==1&&q!=0)return(q*sq).val();if(ap.find(re.val())!=ap.end())return(q*sq+ap[re.val()]).val();re*=A;}return-1;};
 #ifndef hari64
-#pragma GCC target("avx2")
+// #pragma GCC target("avx2")
 #pragma GCC optimize("O3")
 #pragma GCC optimize("unroll-loops")
 #define debug(...)
@@ -89,19 +89,23 @@ string with_fill(int n,int num=3,char space=' '){string s=to_string(n);return st
 // for(int x=0;x<M;x++){/*wirte here*/esc::bcolor(y%10,myrand.randint(0,9));}esc::color(esc::GRAY,y%10);cerr<<endl;}cerr<<"";
 // for(int x=0;x<M;x++)esc::color(esc::GRAY,x%10);cerr<<""<<endl;if(vis_cnt<vis_length)esc::back(N+2+1);usleep(1.0*1000000);}
 }// namespace esc
-
 // clang-format on
 
-int N;                      // grid size
-int JC;                     // JUMP COST
-int FC;                     // FOR COST
-vector<vector<bool>> GRID;  // N*N
+int N;                                    // grid size
+int JC;                                   // JUMP COST
+int FC;                                   // FOR COST
+vector<vector<bool>> GRID;                // N*N
+unordered_map<int, int> TARGET_IDXS;      // TARGET_IDXS[to_idx(r,c)] = idx
+unordered_map<int, int> REV_TARGET_IDXS;  // REV_TARGET_IDXS[idx] = rc
 int TARGET_NUM;
 
 constexpr int dirLen = 8;
-constexpr int dr[dirLen] = {0, 1, 1, 1, 0, -1, -1, -1};
-constexpr int dc[dirLen] = {1, 1, 0, -1, -1, -1, 0, 1};
+constexpr int DR[dirLen] = {0, 1, 1, 1, 0, -1, -1, -1};
+constexpr int DC[dirLen] = {1, 1, 0, -1, -1, -1, 0, 1};
 ///////////////////////////→  ↘  ↓  ↙  ←  ↖  ↑  ↗
+
+inline int to_idx(int r, int c) { return r * N + c; };
+inline pair<int, int> to_rc(int idx) { return {idx / N, idx % N}; };
 
 void read_input() {
     cin >> N >> JC >> FC;
@@ -112,13 +116,14 @@ void read_input() {
             char a;
             cin >> a;
             GRID[r][c] = (a == '#');
-            TARGET_NUM += int(GRID[r][c]);
+            if (GRID[r][c]) {
+                TARGET_IDXS[to_idx(r, c)] = TARGET_NUM;
+                REV_TARGET_IDXS[TARGET_NUM] = to_idx(r, c);
+                TARGET_NUM++;
+            }
         }
     }
 }
-
-int to_idx(int r, int c) { return r * N + c; };
-pair<int, int> to_hw(int idx) { return {idx / N, idx % N}; };
 
 using Bitset = bitset<900>;
 
@@ -147,7 +152,7 @@ enum CommandType {
 const string COMMAND_STR[9] = {"D", "U", "F", "B", "R", "L", "J", "FOR", "END"};
 
 /**
- * @brief 問題に定義されている操作群をコマンドとして定義している
+ * @brief The group of operations defined in the problem
  */
 struct Command {
     CommandType type;
@@ -204,8 +209,8 @@ struct Command {
 };
 
 /**
- * @brief commandの配列
- * @note L,Rはまとめて渡すこと 第一引数に個数を記す
+ * @brief vector of commands
+ * @note L and R must be passed with the num of count as info1
  */
 struct Commands {
     vector<Command> commands;
@@ -232,6 +237,15 @@ struct Commands {
             cost += commands.back().getCost();
         }
     }
+    // note that the info Command has is different from
+    // the args addCommand takes
+    void addCommand(const Command& m) {
+        addCommand(
+            m.type,
+            (m.type == L || m.type == R) ? 1 : (m.type == END ? -INF : m.info1),
+            m.type == FOR ? -INF : m.info2);
+    }
+
     void addCommandRF(int rnum, int fnum) {
         if (fnum == 0) return;
         if (rnum == 0) {
@@ -281,8 +295,8 @@ struct Commands {
 };
 
 /**
- * @brief コマンド群から得点や塗られる箇所を計算する
- *        部分的に配布物のRobotPainterTester.javaから移植した
+ * @brief Calculate scores and areas to be painted from the commands
+ *        see the provided program (RobotPainterTester.java)
  */
 struct Simulator {
     vector<vector<bool>> g;
@@ -295,6 +309,12 @@ struct Simulator {
     int lastr, lastc, lastd;
     int success, fail;
 
+    Simulator() {}
+
+    /**
+     * @param painted
+     *  if painted == {{false}} then g := vector(N, vector<bool>(N, false))
+     */
     Simulator(const Commands& commands, const vector<vector<bool>>& painted,
               int initr, int initc, int initd, bool initpen, int initnest)
         : g(painted),
@@ -307,9 +327,13 @@ struct Simulator {
           initnest(initnest),
           success(0),
           fail(0) {
-        assert(int(painted.size()) == N);
         assert(0 <= initr && initr < N && 0 <= initc && initc < N &&
                0 <= initd && initd < dirLen);
+        if (g.size() == 1 && g[0].size() == 1 && g[0][0] == false) {
+            g.assign(N, vector<bool>(N, false));
+        } else {
+            assert(int(g.size()) == N && int(g[0].size()) == N);
+        }
         reflectCommands(commands.commands);
     }
 
@@ -359,8 +383,8 @@ struct Simulator {
                 }
             } else if (m.type == F) {
                 for (int i = 0; i < m.info1; i++) {
-                    r = (r + dr[dir] + N) % N;
-                    c = (c + dc[dir] + N) % N;
+                    r = (r + DR[dir] + N) % N;
+                    c = (c + DC[dir] + N) % N;
                     if (!isPenUp && !g[r][c]) {
                         if (!GRID[r][c]) {
                             fail++;
@@ -372,8 +396,8 @@ struct Simulator {
                 }
             } else if (m.type == B) {
                 for (int i = 0; i < m.info1; i++) {
-                    r = (r - dr[dir] + N) % N;
-                    c = (c - dc[dir] + N) % N;
+                    r = (r - DR[dir] + N) % N;
+                    c = (c - DC[dir] + N) % N;
                     if (!isPenUp && !g[r][c]) {
                         if (!GRID[r][c]) {
                             fail++;
@@ -425,263 +449,137 @@ struct Simulator {
     }
 };
 
-// Bitset genBitsetFromGrid(int d, int r, int c,
-//                          const vector<vector<bool>>& _grid) {
-//     vector<vector<bool>> grid = _grid;
-//     for (auto& row : grid) {
-//         rotate(row.begin(), row.begin() + c, row.end());
-//     }
-//     rotate(grid.begin(), grid.begin() + r, grid.end());
+struct CandInfo {
+    int sr, sc, sd;
+    int gr, gc, gd;
+    int commands_cost;
+    vector<Command> raw_commands;
+    Bitset painted_tiles;
 
-//     Bitset ret(0);
-//     int nowr = 0;
-//     int nowc = 0;
-//     for (int r = 0; r < N; r++, nowr += dr[((d + 1) * 2) % dirLen],
-//              nowc += dc[((d + 1) * 2) % dirLen]) {
-//         for (int c = 0; c < N; c++, nowr += dr[d * 2], nowc += dc[d * 2]) {
-//             nowr = (nowr + N) % N;
-//             nowc = (nowc + N) % N;
-//             ret[to_idx(r, c)] = grid[nowr][nowc];
-//         }
-//     }
-
-//     return ret;
-// }
-
-// /**
-//  * @brief d*90度回転してr行c列ずらした盤面を前計算しておく
-//  * @note 参照のみなら、データの取得は必ず以下の形で行うこと
-//  *       const Bitset& g = bitsetbank.getBitset(d, r, c);
-//  */
-// struct BitsetBank {
-//     vector<vector<vector<Bitset>>> _bitsets;
-
-//     BitsetBank() {}
-
-//     void init() {
-//         assert(_bitsets.empty());
-//         _bitsets.resize(4, vector<vector<Bitset>>(N, vector<Bitset>(N)));
-//         for (int d = 0; d < 4; d++) {
-//             for (int r = 0; r < N; r++) {
-//                 for (int c = 0; c < N; c++) {
-//                     _bitsets[d][r][c] = genBitsetFromGrid(d, r, c, GRID);
-//                 }
-//             }
-//         }
-//     }
-
-//     /**
-//      * @param d only [0,4)  This is different from the problem's rotation
-//      system
-//      * @param r accept N or more
-//      * @param c accept N or more
-//      */
-//     const Bitset& getBitset(int d, int r, int c) const {
-//         assert(0 <= r && 0 <= c);
-//         r %= N;
-//         c %= N;
-//         assert(0 <= d && d < 4);  // RDLU
-//         return _bitsets[d][r][c];
-//     }
-// };
-// BitsetBank bb;
-
-struct ForLoopInfo {
-    int sr = -1;
-    int sc = -1;
-    int sd = -1;
-    int dr = -1;
-    int dc = -1;
-    int dd = -1;
-    int g_and = -1;
-    int g_or = -1;
-
-    ForLoopInfo(int sr, int sc, int sd, int dr, int dc, int dd, int g_and,
-                int g_or)
-        : sr(sr),
-          sc(sc),
-          sd(sd),
-          dr(dr),
-          dc(dc),
-          dd(dd),
-          g_and(g_and),
-          g_or(g_or) {
-        assert(g_and <= g_or);
+    CandInfo() {}
+    CandInfo(int sr, int sc, int sd, const Commands& _commands,
+             const Simulator& sim)
+        : sr(sr), sc(sc), sd(sd), gr(sim.lastr), gc(sim.lastc), gd(sim.lastd) {
+        assert(!sim.fail);
+        assert(sim.initr == 0 && sim.initc == 0);
+        assert(_commands.commands[0].type == J);
+        raw_commands.assign(_commands.commands.begin() + 1,
+                            _commands.commands.end());
+        commands_cost = sim.commands_cost;
+        for (int r = 0; r < N; r++) {
+            for (int c = 0; c < N; c++) {
+                if (sim.g[r][c]) {
+                    painted_tiles[to_idx(r, c)] = true;
+                }
+            }
+        }
+        assert(sim.success == int(painted_tiles.count()));
     };
-
-    double value() const {
-        return (1 - double(g_and) / double(TARGET_NUM)) *
-               (double(g_or) / double(g_and));
-    }
-
-    bool operator<(const ForLoopInfo& rhs) { return value() < rhs.value(); }
-
-    friend ostream& operator<<(ostream& os, const ForLoopInfo& x) {
-        return os << "["
-                  << "sr:" << x.sr << ", "
-                  << "sc:" << x.sc << ", "
-                  << "sd:" << x.sd << ", "
-                  << "dr:" << x.dr << ", "
-                  << "dc:" << x.dc << ", "
-                  << "dd:" << x.dd << "]";
-    }
 };
 
-// auto findBestRect() {
-//     debug(GRID, "grid");
-//     vector<ForLoopInfo> cands;
-//     int loopx = 4;  //?
-//     int loop_cnt = 0;
-//     for (int sr = 0; sr < N; sr++) {
-//         for (int sc = 0; sc < N; sc++) {
-//             if (!GRID[sr][sc]) continue;
-//             for (int sd = 0; sd < 4; sd++) {
-//                 for (int dr = 0; dr < N; dr++) {
-//                     for (int dc = (dr ? 0 : 1); dc < N; dc++) {
-//                         for (int dd = 0; dd < 4; dd++) {
-//                             loop_cnt++;
-//                             Bitset g_and = bb.getBitset(sd, sr, sc);
-//                             for (int inner_loop = 1; inner_loop < loopx;
-//                                  inner_loop++) {
-//                                 const Bitset& g2 = bb.getBitset(
-//                                     (sd + dd * inner_loop) % 4,
-//                                     sr + dr * inner_loop, sc + dc *
-//                                     inner_loop);
-//                                 g_and &= g2;
-//                             }
-//                             if (sr == 0 && sc == 6 && sd == 3 && dr == 7 &&
-//                                 dc == 0 && dd == 3) {
-//                                 debug(g_and);
-//                             }
-//                             int g_and_count = g_and.count();
-//                             if (g_and[0] && g_and_count > TARGET_NUM / loopx)
-//                             {
-//                                 vector<vector<bool>> g_and_vvb(N,
-//                                                                vector<bool>(N));
-//                                 for (int r = 0; r < N; r++) {
-//                                     for (int c = 0; c < N; c++) {
-//                                         g_and_vvb[r][c] = g_and[to_idx(r,
-//                                         c)];
-//                                     }
-//                                 }
-//                                 Bitset g_or = g_and;
-//                                 for (int inner_loop = 1; inner_loop < loopx;
-//                                      inner_loop++) {
-//                                     const Bitset& g2 = genBitsetFromGrid(
-//                                         (sd + dd * inner_loop) % 4,
-//                                         (sr + dr * inner_loop + N) % N,
-//                                         (sc + dc * inner_loop + N) % N,
-//                                         g_and_vvb);
-//                                     g_or |= g2;
-//                                 }
-//                                 if (sr == 0 && sc == 6 && sd == 3 && dr == 7
-//                                 &&
-//                                     dc == 0 && dd == 3) {
-//                                     debug(g_or);
-//                                 }
-//                                 int g_or_count = g_or.count();
-//                                 cands.emplace_back(sr, sc, sd, dr, dc, dd,
-//                                                    g_and_count, g_or_count);
-//                             }
-//                         }
-//                     }
-//                 }
-//             }
-//         }
-//     }
-//     debug(loop_cnt);
-//     debug(cands.size());
-//     sort(cands.begin(), cands.end());
-//     debug(cands.front());
-//     debug(cands.back());
-//     assert(false);
-// }
+int get_direction(int dr, int dc) {
+    // constexpr int DR[dirLen] = {0, 1, 1, 1, 0, -1, -1, -1};
+    // constexpr int DC[dirLen] = {1, 1, 0, -1, -1, -1, 0, 1};
+    // ///////////////////////////→  ↘  ↓  ↙  ←  ↖  ↑  ↗
+    if (dr == 0 && dc == 0) return -1;
+    if (dr == 0) return dc > 0 ? 0 : 4;
+    if (dc == 0) return dr > 0 ? 2 : 6;
+    if (abs(dr) == abs(dc)) {
+        assert(abs(dr) > 0);
+        if (dr > 0) {
+            return dc > 0 ? 1 : 3;
+        } else {
+            return dc > 0 ? 7 : 5;
+        }
+    }
+    return -1;
+}
 
-bool simple_check(int sr, int sc, int f1, int r1) {
+bool simple_check(int sr, int sc, int sd, int f1, int r1) {
     assert(GRID[sr][sc]);
+    int d = (sd + r1) % dirLen;
     for (int step = 1; step <= f1; step++) {
-        if (!GRID[(sr + step * dr[r1] + N) % N][(sc + step * dc[r1] + N) % N]) {
+        if (!GRID[(sr + step * DR[d] + N) % N][(sc + step * DC[d] + N) % N]) {
             return false;
         }
     }
     return true;
 }
 
-void solve() {
-    Commands best_commands;
+bool is_good_edge(int f, int sr, int sc, int sd) {
+    if (f == 0) return true;
+    int loop = 0;
+    if (sd % 2 == 0) {
+        loop = N;
+    } else {
+        while (++loop) {
+            if (loop > 1000) assert(false);
+            if ((DR[sd] * loop + 2 * N) % N == 0 &&
+                (DC[sd] * loop + 2 * N) % N == 0) {
+                break;
+            }
+        }
+    }
+    if (f >= loop - 1) {
+        return simple_check(sr, sc, sd, f, 0);
+    } else {
+        return !GRID[(sr + DR[(sd + 4) % dirLen] + N) % N]
+                    [(sc + DC[(sd + 4) % dirLen] + N) % N] &&
+               !GRID[(sr + DR[sd] * (f + 1) + 2 * N) % N]
+                    [(sc + DC[sd] * (f + 1) + 2 * N) % N];
+    }
+}
 
-    bool isPenUp = true;
-    int lastr = 0, lastc = 0, lastd = 0;
-    vector<vector<bool>> painted(N, vector<bool>(N, false));
-    int num_painted = 0;
+vector<CandInfo> enumerate_candidates() {
+    constexpr int TL_ENUM = 5000;
 
-    int loop_cnt = 0;
+    vector<CandInfo> candidates;
 
-    const int TL = (N >= 20 ? 4500 : 7000);
-    const int TL2 = 9500;
-
-    while (num_painted < TARGET_NUM && ++loop_cnt < 100) {
-        bool timeup = (timer.ms() > TL);
-        int inner_best_score = INF;
-        Commands inner_best_commands;
-        vector<vector<bool>> best_painted;
-        // int best_sr = -1;
-        // int best_sc = -1;
-        // int best_sd = -1;
-        // int best_r1 = -1;
-        // int best_f1 = -1;
-        int best_loopx1 = -1;
-        int best_lastr = -1;
-        int best_lastc = -1;
-        int best_lastd = -1;
+    if (N <= 12) {
+        // FOR RFRF
         for (int sr = 0; sr < N; sr++) {
             for (int sc = 0; sc < N; sc++) {
-                if (!GRID[(lastr + sr) % N][(lastc + sc) % N]) continue;
+                if (!GRID[sr][sc]) continue;
                 for (int sd = 0; sd < dirLen; sd++) {
                     for (int r1 = 0; r1 < dirLen; r1++) {
-                        for (int f1 = 0; f1 < N; f1 += (N > 20 ? 2 : 1)) {
-                            if ((sd != 0 || f1 != 0 || r1 != 0) && timeup) {
-                                break;
-                            }
+                        for (int f1 = 0; f1 < N; f1++) {
                             if (f1 == 0 && r1 > 0) continue;
-                            if (loop_cnt == 1 && !simple_check(sr, sc, f1, r1))
-                                break;
-                            for (int loopx1 = 2 - 1; loopx1 <= 10; loopx1++) {
-                                Commands commands;
-                                if (sr != 0 || sc != 0) {
-                                    commands.addCommand(J, sr, sc);
-                                }
-                                if (isPenUp) {
-                                    commands.addCommand(D);
-                                }
+                            if (!simple_check(sr, sc, sd, f1, r1)) break;
+                            for (int r2 = 0; r2 < dirLen; r2++) {
+                                for (int f2 = 0; f2 < (f1 ? N : 1); f2++) {
+                                    if (f2 == 0 && r2 > 0) continue;
+                                    Commands best_commands;
+                                    Simulator best_sim;
+                                    for (int loopx1 = 2; loopx1 <= 10;
+                                         loopx1++) {
+                                        Commands commands;
 
-                                if (loopx1 >= 2) {
-                                    commands.addCommand(FOR, loopx1);
-                                }
-                                { commands.addCommandRF(r1, f1); }
-                                if (loopx1 >= 2) {
-                                    commands.addCommand(END);
-                                }
+                                        // Always add this Jump for the sake of
+                                        // cost and implementation convenience
+                                        commands.addCommand(J, sr, sc);
 
-                                Simulator sim(commands, painted, lastr, lastc,
-                                              lastd, isPenUp, 0);
+                                        commands.addCommand(FOR, loopx1);
+                                        commands.addCommandRF(r1, f1);
+                                        commands.addCommandRF(r2, f2);
+                                        commands.addCommand(END);
 
-                                if (sim.success &&
-                                    chmin(inner_best_score,
-                                          sim.total_cost + sim.fail * 1000)) {
-                                    swap(inner_best_commands, commands);
-                                    swap(best_painted, sim.g);
-                                    best_lastr = sim.lastr;
-                                    best_lastc = sim.lastc;
-                                    best_lastd = sim.lastd;
-                                    // best_sr = sr;
-                                    // best_sc = sc;
-                                    // best_sd = sd;
-                                    // best_r1 = r1;
-                                    // best_f1 = f1;
-                                    best_loopx1 = loopx1;
-                                } else if (sim.fail) {
-                                    break;  // loopx
+                                        Simulator sim(commands, {{false}}, 0, 0,
+                                                      sd, false, 0);
+
+                                        if (sim.success && !sim.fail) {
+                                            swap(best_commands, commands);
+                                            swap(best_sim, sim);
+                                        }
+                                        if (sim.fail || loopx1 == 10) {
+                                            if (!best_commands.commands
+                                                     .empty()) {
+                                                candidates.emplace_back(
+                                                    sr, sc, sd, best_commands,
+                                                    best_sim);
+                                            }
+                                            break;
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -689,133 +587,275 @@ void solve() {
                 }
             }
         }
-
-        if (inner_best_score == INF) {
-            break;
-        }
-        if (best_loopx1 == 1) {
-            break;
-        }
-
-        for (auto& m : inner_best_commands.commands) {
-            if (m.type == D) isPenUp = false;
-            if (m.type == U) isPenUp = true;
-            best_commands.addCommand(m.type,
-                                     (m.type == L || m.type == R)
-                                         ? 1
-                                         : (m.type == END ? -INF : m.info1),
-                                     m.type == FOR ? -INF : m.info2);
-        }
-        swap(painted, best_painted);
-        num_painted = 0;
-        for (int r = 0; r < N; r++) {
-            for (int c = 0; c < N; c++) {
-                num_painted += int(painted[r][c]);
-            }
-        }
-        lastr = best_lastr;
-        lastc = best_lastc;
-        lastd = best_lastd;
-        debug("#");
-    }
-
-    //
-    assert(loop_cnt > 0);
-    //
-
-    while (num_painted < TARGET_NUM && ++loop_cnt < 100) {
-        bool timeup = (timer.ms() > TL2);
-        int inner_best_score = INF;
-        Commands inner_best_commands;
-        vector<vector<bool>> best_painted;
-        // int best_sr = -1;
-        // int best_sc = -1;
-        // int best_sd = -1;
-        // int best_r1 = -1;
-        // int best_f1 = -1;
-        int best_loopx1 = -1;
-        int best_lastr = -1;
-        int best_lastc = -1;
-        int best_lastd = -1;
+    } else {
+        // FOR RF
         for (int sr = 0; sr < N; sr++) {
             for (int sc = 0; sc < N; sc++) {
-                if (!GRID[(lastr + sr) % N][(lastc + sc) % N]) continue;
+                if (!GRID[sr][sc]) continue;
+                for (int sd = 0; sd < dirLen; sd++) {
+                    for (int r1 = 0; r1 < dirLen; r1++) {
+                        for (int f1 = 0; f1 < N; f1++) {
+                            if (f1 == 0 && r1 > 0) continue;
+                            if (!simple_check(sr, sc, sd, f1, r1)) break;
+                            Commands best_commands;
+                            Simulator best_sim;
+                            for (int loopx1 = 2; loopx1 <= 10; loopx1++) {
+                                Commands commands;
 
-                for (int r1 = 0; r1 < dirLen; r1++) {
-                    for (int f1 = 0; f1 < N; f1 += (N > 20 ? 2 : 1)) {
-                        if ((f1 != 0 || r1 != 0) && timeup) {
-                            break;
-                        }
-                        if (f1 == 0 && r1 > 0) continue;
+                                // Always add this Jump for the sake of
+                                // cost and implementation convenience
+                                commands.addCommand(J, sr, sc);
 
-                        Commands commands;
-                        if (sr != 0 || sc != 0) {
-                            commands.addCommand(J, sr, sc);
-                        }
-                        if (isPenUp) {
-                            commands.addCommand(D);
-                        }
-                        commands.addCommandRF(r1, f1);
+                                commands.addCommand(FOR, loopx1);
+                                commands.addCommandRF(r1, f1);
+                                commands.addCommand(END);
 
-                        Simulator sim(commands, painted, lastr, lastc, lastd,
-                                      isPenUp, 0);
+                                Simulator sim(commands, {{false}}, 0, 0, sd,
+                                              false, 0);
 
-                        if (sim.success &&
-                            chmin(inner_best_score,
-                                  sim.total_cost + sim.fail * 1000)) {
-                            swap(inner_best_commands, commands);
-                            swap(best_painted, sim.g);
-                            best_lastr = sim.lastr;
-                            best_lastc = sim.lastc;
-                            best_lastd = sim.lastd;
-                            // best_sr = sr;
-                            // best_sc = sc;
-                            // best_sd = sd;
-                            // best_r1 = r1;
-                            // best_f1 = f1;
-                            // best_loopx1 = loopx1;
-                        } else if (sim.fail) {
-                            break;  // loopx
+                                if (sim.success && !sim.fail) {
+                                    swap(best_commands, commands);
+                                    swap(best_sim, sim);
+                                }
+                                if (sim.fail || loopx1 == 10) {
+                                    if (!best_commands.commands.empty()) {
+                                        candidates.emplace_back(sr, sc, sd,
+                                                                best_commands,
+                                                                best_sim);
+                                    }
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
             }
         }
-
-        if (inner_best_score == INF) {
-            break;
-        }
-        if (best_loopx1 == 1) {
-            break;
-        }
-
-        for (auto& m : inner_best_commands.commands) {
-            if (m.type == D) isPenUp = false;
-            if (m.type == U) isPenUp = true;
-            best_commands.addCommand(m.type,
-                                     (m.type == L || m.type == R)
-                                         ? 1
-                                         : (m.type == END ? -INF : m.info1),
-                                     m.type == FOR ? -INF : m.info2);
-        }
-        swap(painted, best_painted);
-        num_painted = 0;
-        for (int r = 0; r < N; r++) {
-            for (int c = 0; c < N; c++) {
-                num_painted += int(painted[r][c]);
-            }
-        }
-        lastr = best_lastr;
-        lastc = best_lastc;
-        lastd = best_lastd;
-        debug("#");
+        debug(candidates.size());
     }
 
-    debug(best_commands);
-    vector<vector<bool>> none_painted(N, vector<bool>(N, false));
-    Simulator sim(best_commands, none_painted, 0, 0, 0, true, 0);
-    sim.report();
-    cout << best_commands << endl;
+    // RF
+    for (int sr = 0; sr < N; sr++) {
+        for (int sc = 0; sc < N; sc++) {
+            if (!GRID[sr][sc]) continue;
+            for (int sd = 0; sd < dirLen; sd++) {
+                for (int f1 = 0; f1 < N; f1++) {
+                    if (!is_good_edge(f1, sr, sc, sd)) {
+                        continue;
+                    }
+                    for (int r1 = 0; r1 < 1 /*dirLen*/; r1++) {
+                        if (f1 == 0 && r1 > 0) continue;
+                        if (!simple_check(sr, sc, sd, f1, r1)) break;
+
+                        Commands commands;
+
+                        // Always add this Jump for the sake of cost and
+                        // implementation convenience
+                        commands.addCommand(J, sr, sc);
+
+                        commands.addCommandRF(r1, f1);
+
+                        Simulator sim(commands, {{false}}, 0, 0, sd, false, 0);
+
+                        if (sim.success && !sim.fail) {
+                            candidates.emplace_back(sr, sc, sd, commands, sim);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    debug(candidates.size());
+
+    // FOR FJ
+    vector<int> Ps1(N), Ps2(N);
+    iota(Ps1.begin(), Ps1.end(), 0);
+    iota(Ps2.begin(), Ps2.end(), 0);
+    myrand.shuffle(Ps1);
+    myrand.shuffle(Ps2);
+    for (int _sr = 0; _sr < N; _sr++) {
+        int sr = Ps1[_sr];
+        for (int _sc = 0; _sc < N; _sc++) {
+            int sc = Ps2[_sc];
+            if (timer.ms() > TL_ENUM) {
+                break;
+            }
+            if (!GRID[sr][sc]) continue;
+            for (int sd = 0; sd < dirLen; sd++) {
+                for (int dr = 0; dr < N; dr++) {
+                    for (int dc = 0; dc < N; dc++) {
+                        if (dr == 0 && dc == 0) {
+                            continue;
+                        }
+                        for (int f1 = 0; f1 < N; f1++) {
+                            int dir_of_dr_dc =
+                                get_direction((f1 * DR[sd] + dr + N) % N,
+                                              (f1 * DC[sd] + dc + N) % N);
+                            if (dir_of_dr_dc == -1 ||
+                                (sd % 4 == dir_of_dr_dc % 4)) {
+                                continue;
+                            }
+                            if (!is_good_edge(f1, sr, sc, sd)) continue;
+
+                            Commands best_commands;
+                            Simulator best_sim;
+                            for (int loopx1 = 2; loopx1 <= 10; loopx1++) {
+                                Commands commands;
+
+                                // Always add this Jump for the sake of cost and
+                                // implementation convenience
+                                commands.addCommand(J, sr, sc);
+
+                                commands.addCommand(FOR, loopx1);
+                                commands.addCommand(F, f1);
+                                commands.addCommand(J, dr, dc);
+                                commands.addCommand(END);
+
+                                Simulator sim(commands, {{false}}, 0, 0, sd,
+                                              false, 0);
+
+                                if (sim.success && !sim.fail) {
+                                    swap(best_commands, commands);
+                                    swap(best_sim, sim);
+                                }
+                                if (sim.fail || loopx1 == 10) {
+                                    if (!best_commands.commands.empty()) {
+                                        candidates.emplace_back(sr, sc, sd,
+                                                                best_commands,
+                                                                best_sim);
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    debug(candidates.size());
+
+    return candidates;
+}
+
+int del_cand_failed_cnt = 0;
+CandInfo find_best_cand(vector<CandInfo>& candidates, Bitset& painted,
+                        int lastr, int lastc, int lastd, double cost_e1,
+                        double effect_e1) {
+    int best_idx = -1;
+    double best_cost_effectiveness = 0.0;
+    painted.flip();
+    double cost_e2 = 1.5 + cost_e1 + 0.5 * myrand.random();
+    double effect_e2 = 1.0 + effect_e1 + 0.5 * myrand.random();
+    for (int i = 0; i < int(candidates.size()); i++) {
+        const CandInfo& cand = candidates[i];
+        double cost = cand.commands_cost + abs(cand.sd - lastd) +
+                      (cand.sr == lastr && cand.sc == lastc ? 0 : JC);
+        double effect = (cand.painted_tiles & painted).count();
+        cost = powf(cost, cost_e2);
+        effect = powf(effect, effect_e2);
+        if (chmax(best_cost_effectiveness, effect / cost)) {
+            best_idx = i;
+        }
+    }
+    painted.flip();
+    if (best_cost_effectiveness <= 1e-10) {
+        assert(false);
+    }
+    const CandInfo ret = candidates[best_idx];
+    if (del_cand_failed_cnt < 10) {
+        size_t ret_count = ret.painted_tiles.count();
+        size_t bef_candidates_size = candidates.size();
+        candidates.erase(
+            remove_if(
+                candidates.begin(), candidates.end(),
+                [&](const CandInfo& cand) {
+                    return (cand.painted_tiles | ret.painted_tiles).count() ==
+                               ret_count &&
+                           ret.commands_cost < cand.commands_cost;
+                }),
+            candidates.end());
+        debug(candidates.size());
+        if (bef_candidates_size == candidates.size()) {
+            del_cand_failed_cnt++;
+        }
+    }
+    return ret;
+}
+
+auto solve() {
+    del_cand_failed_cnt = 0;
+    vector<CandInfo> candidates = enumerate_candidates();
+
+    int TL = 9000;
+
+    int outer_loop_cnt = 0;
+    int outer_best_score = INF;
+    Commands outer_best_commands;
+    Simulator outer_best_sim;
+
+    while (timer.ms() < TL) {
+        outer_loop_cnt++;
+
+        Commands best_commands;
+        bool isPenUp = true;
+        int lastr = 0, lastc = 0, lastd = 0;
+        Bitset painted(0);
+        int num_painted = 0;
+
+        double cost_e1 = myrand.random();
+        double efffect_e1 = myrand.random();
+
+        while (num_painted < TARGET_NUM) {
+            auto info = find_best_cand(candidates, painted, lastr, lastc, lastd,
+                                       cost_e1, efffect_e1);
+
+            if (info.sd != lastd) {
+                best_commands.addCommand(info.sd > lastd ? R : L,
+                                         abs(info.sd - lastd));
+            }
+            if (info.sr != lastr || info.sc != lastc) {
+                best_commands.addCommand(J, info.sr - lastr, info.sc - lastc);
+            }
+            if (isPenUp) {
+                isPenUp = false;
+                best_commands.addCommand(D);
+            }
+            for (auto& m : info.raw_commands) {
+                if (m.type == D) isPenUp = false;
+                if (m.type == U) isPenUp = true;
+                best_commands.addCommand(m);
+            }
+
+            Simulator sim(best_commands, {{false}}, 0, 0, 0, true, 0);
+
+            lastr = sim.lastr;
+            lastc = sim.lastc;
+            lastd = sim.lastd;
+
+            for (int r = 0; r < N; r++) {
+                for (int c = 0; c < N; c++) {
+                    if (sim.g[r][c] && !painted[to_idx(r, c)]) {
+                        num_painted++;
+                        painted[to_idx(r, c)] = true;
+                    }
+                }
+            }
+        }
+
+        assert(num_painted == int(painted.count()));
+        Simulator sim(best_commands, {{false}}, 0, 0, 0, true, 0);
+
+        if (chmin(outer_best_score, sim.total_cost)) {
+            swap(outer_best_commands, best_commands);
+            swap(outer_best_sim, sim);
+        }
+    }
+
+    debug(outer_loop_cnt);
+
+    outer_best_sim.report();
+    return outer_best_commands;
 }
 
 int main() {
@@ -824,10 +864,13 @@ int main() {
 
     timer.start();
     read_input();
-    solve();
+    auto ans = solve();
     timer.stop();
 
     cerr << timer.report() << endl;
+    assert(timer.ms() < 9800);
+
+    cout << ans << endl;
 
     return 0;
 }
