@@ -159,9 +159,6 @@ struct Command {
     int info1;
     int info2;
 
-    Command(CommandType type, int info1, int info2)
-        : type(type), info1(info1), info2(info2) {}
-
     Command(CommandType type, vector<int>& forStartIds,
             vector<Command>& commands, int _info1 = -INF, int _info2 = -INF)
         : type(type), info1(_info1), info2(_info2) {
@@ -341,14 +338,12 @@ struct Simulator {
     }
 
     void report() {
-#ifdef hari64
         esc::color(esc::ORANGE, "    Grid Cost: " + to_string(grid_cost));
         cerr << endl;
         esc::color(esc::ORANGE, "Commands Cost: " + to_string(commands_cost));
         cerr << endl;
         esc::color(esc::RED, "   Total Cost: " + to_string(total_cost));
         cerr << endl;
-#endif
     }
 
    private:
@@ -788,89 +783,6 @@ CandInfo find_best_cand(vector<CandInfo>& candidates, Bitset& painted,
     return ret;
 }
 
-int find_best_way(int nowr, int nowc, int nowd, int nr, int nc,
-                  Commands& commands) {
-    vector<Command> hist;
-    vector<Command> best_hist = {Command(J, nr - nowr, nc - nowc)};
-    int best_d = nowd;
-    auto dfs = [&](const auto& f, int r, int c, int d, int depth) -> void {
-        if (r == nr && c == nc) {
-            if (best_hist.front().type == J || best_hist.size() > hist.size()) {
-                best_hist = hist;
-                best_d = d;
-            }
-            return;
-        }
-        if (depth == JC - 1) {
-            assert(int(hist.size()) == depth);
-            return;
-        } else {
-            for (int i = 1; i < N; i++) {
-                if (GRID[(r + DR[d] + N) % N][(c + DC[d] + N) % N]) {
-                    hist.emplace_back(F, i, -INF);
-                    f(f, (r + DR[d] + N) % N, (c + DC[d] + N) % N, d,
-                      depth + 1);
-                    hist.pop_back();
-                } else {
-                    break;
-                }
-            }
-            for (int i = 1; i < N; i++) {
-                if (GRID[(r - DR[d] + N) % N][(c - DC[d] + N) % N]) {
-                    hist.emplace_back(B, i, -INF);
-                    f(f, (r - DR[d] + N) % N, (c - DC[d] + N) % N, d,
-                      depth + 1);
-                    hist.pop_back();
-                } else {
-                    break;
-                }
-            }
-            hist.emplace_back(L, -INF, -INF);
-            f(f, r, c, (d + 1) % dirLen, depth + 1);
-            hist.pop_back();
-            hist.emplace_back(R, -INF, -INF);
-            f(f, r, c, (d + dirLen - 1) % dirLen, depth + 1);
-            hist.pop_back();
-        }
-    };
-    dfs(dfs, nowr, nowc, nowd, 0);
-    for (auto& m : best_hist) {
-        commands.addCommand(m);
-    }
-    return best_d;
-}
-
-void find_shortest_path(int sr, int sc, int sd, vector<pair<int, int>>& points,
-                        Commands& commands) {
-    Commands best_additional_commands;
-    int nowr = sr;
-    int nowc = sc;
-    for (auto& [nr, nc] : points) {
-        best_additional_commands.addCommand(J, nr - nowr, nc - nowc);
-        nowr = nr;
-        nowc = nc;
-    }
-    for (int _ = 0; _ < 100; _++) {
-        myrand.shuffle(points);
-        Commands temp_commands;
-        int nowr = sr;
-        int nowc = sc;
-        int nowd = sd;
-        for (auto& [nr, nc] : points) {
-            nowd = find_best_way(nowr, nowc, nowd, nr, nc, temp_commands);
-            nowr = nr;
-            nowc = nc;
-        }
-        if (best_additional_commands.cost > temp_commands.cost) {
-            best_additional_commands = temp_commands;
-        }
-    }
-
-    for (auto& m : best_additional_commands.commands) {
-        commands.addCommand(m);
-    }
-}
-
 auto solve() {
     del_cand_failed_cnt = 0;
     vector<CandInfo> candidates = enumerate_candidates();
@@ -942,31 +854,7 @@ auto solve() {
 
     debug(outer_loop_cnt);
 
-    vector<pair<int, int>> points;
-    int nowr = outer_best_sim.lastr;
-    int nowc = outer_best_sim.lastc;
-    int nowd = outer_best_sim.lastd;
-    while (int(points.size()) < 10 && !outer_best_commands.commands.empty() &&
-           outer_best_commands.commands.back().type == J) {
-        points.emplace_back(nowr, nowc);
-        nowr -= outer_best_commands.commands.back().info1;
-        nowc -= outer_best_commands.commands.back().info2;
-        nowr += N;
-        nowc += N;
-        nowr %= N;
-        nowc %= N;
-        outer_best_commands.commands.pop_back();
-    }
-    find_shortest_path(nowr, nowc, nowd, points, outer_best_commands);
-
-    debug(points);
-    debug(nowr, nowc, nowd);
-
-#ifdef hari64
-    Simulator final_sim(outer_best_commands, {{false}}, 0, 0, 0, true, 0);
-    final_sim.report();
-#endif
-
+    outer_best_sim.report();
     return outer_best_commands;
 }
 
@@ -974,8 +862,8 @@ int main() {
     cin.tie(0);
     ios::sync_with_stdio(false);
 
-    read_input();
     timer.start();
+    read_input();
     auto ans = solve();
     timer.stop();
 
