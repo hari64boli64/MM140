@@ -72,7 +72,7 @@ seed2
    例: seed1
    ![FOR RFRF](imgs/FOR_RFRF.gif)
 
-   状態数としては、$O(N^3dirLen^2loopLen)$です。  
+   状態数としては、 $O(N^3dirLen^2loopLen)$ です。  
    (dirLen:=8,loopLen:=9)
 
 2. RF
@@ -82,7 +82,7 @@ seed2
    F 6
    ```
 
-   状態数としては$O(N^3dirLen^2)$です。
+   状態数としては $O(N^3dirLen^2)$ です。
 
 3. FOR FJ
 
@@ -96,7 +96,7 @@ seed2
    例: seed61
    ![FOR FJ](imgs/FOR_FJ.gif)
 
-   状態数としては$O(N^5loopLen)$です。
+   状態数としては $O(N^5loopLen)$ です。
 
 愚直にこれらを全て列挙すると、時間がかかりすぎてしまいます。  
 なので、適切にこれらを枝刈りすることで、5sec以内に収めています。
@@ -362,6 +362,6 @@ I did not raise the pen at all, so perhaps I should have worked around that.
 
 At first I had the impression that this problem was similar to [HACK TO THE FUTURE 2022](https://atcoder.jp/contests/future-contest-2022-final-open), but it was different in some ways.
 
-I only attended the first two days because of AHC014, but it was very interesting.
+I only participated the first two days because of AHC014, but it was very interesting.
 
 Thank you for reading.
