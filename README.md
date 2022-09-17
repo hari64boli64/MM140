@@ -67,13 +67,13 @@ seed2
    END
    ```
 
-   N<=12の時はFOR RFRFとRFをもう一つ追加しました。
+   $N\leq12$ の時はFOR RFRFと、RFをもう一つ追加しました。
 
    例: seed1
    ![FOR RFRF](imgs/FOR_RFRF.gif)
 
    状態数としては、 $O(N^3dirLen^2loopLen)$ です。  
-   (dirLen:=8,loopLen:=9)
+   ( $dirLen:=8,loopLen:=9$ )
 
 2. RF
 
@@ -236,13 +236,13 @@ The following patterns additionally include information on where and in which di
    END
    ```
 
-   when N<=12, I used FOR RFRF pattern instead of this.
+   when $N\leq12$ , I used FOR RFRF pattern instead of this.
 
    Example: seed1
    ![FOR RFRF](imgs/FOR_RFRF.gif)
 
    The number of states is $O(N^3dirLen^2loopLen)$.
-   (where dirLen:=8,loopLen:=9)
+   (where $dirLen:=8,loopLen:=9$ )
 
 2. RF
 
