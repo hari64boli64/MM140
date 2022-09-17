@@ -1,6 +1,5 @@
-.vscode
+# .vscode
+# src/cpp/RobotPainter
 
 RobotPainterTester
 tester.jar
-
-src/cpp/RobotPainter
