@@ -2,9 +2,30 @@
 
 ## Links
 
-[Problem Statement](https://www.topcoder.com/challenges/d6b59637-343d-47b3-ac1e-8b45b2416b09?tab=submissions)
+[Problem Statement](https://www.topcoder.com/challenges/d6b59637-343d-47b3-ac1e-8b45b2416b09?tab=details)
 
 [Final Solution](./src/cpp/RobotPainter.cpp) - My final submission
+
+- [MM140](#mm140)
+  - [Links](#links)
+  - [日本語](#日本語)
+    - [問題概要](#問題概要)
+    - [解概略](#解概略)
+    - [解法](#解法)
+      - [step 1/2 候補の列挙](#step-12-候補の列挙)
+      - [step 2/2 集合被覆問題を解く](#step-22-集合被覆問題を解く)
+    - [結果](#結果)
+    - [駄目だった方針](#駄目だった方針)
+    - [感想](#感想)
+  - [ENGLISH](#english)
+    - [Problem Summary](#problem-summary)
+    - [Solution Summary](#solution-summary)
+    - [Solution](#solution)
+      - [Step 1/2 Enumerate candidates](#step-12-enumerate-candidates)
+      - [Step 2/2 Solve the set covering problem](#step-22-solve-the-set-covering-problem)
+    - [Result](#result)
+    - [Failed Policy](#failed-policy)
+    - [Impressions](#impressions)
 
 ## 日本語
 
@@ -82,12 +103,12 @@ seed2
 
 具体的な高速化の手法は以下の通りです。
 
-* 初期地点は必ず青い点にする
-* loop回数は2からスタートして、failが発生した時点で打ち切る
-* 直線を塗る際は最長のものを選ぶようにする(ただし、ループするような場合は別で考慮する)
-* 簡易的なチェックを行い、シミュレーションをする前に失敗が発生する恐れがないか確認する
-* bitsetでシミュレーションを高速化
-* 上位互換が存在するような要素は削除する (ただし、全て調べるとTLEするので、後述の操作内で採用された候補の下位互換のみを調べる)
+- 初期地点は必ず青い点にする
+- loop回数は2からスタートして、failが発生した時点で打ち切る
+- 直線を塗る際は最長のものを選ぶようにする(ただし、ループするような場合は別で考慮する)
+- 簡易的なチェックを行い、シミュレーションをする前に失敗が発生する恐れがないか確認する
+- bitsetでシミュレーションを高速化
+- 上位互換が存在するような要素は削除する (ただし、全て調べるとTLEするので、後述の操作内で採用された候補の下位互換のみを調べる)
 
 ---
 
@@ -101,7 +122,7 @@ seed2
 
 この問題は様々なヒューリスティックが知られているようですが、費用対効果に注目した貪欲法だけである程度の近似保証が得られるので、この方法をメインに考えていくことにしました。
 
-[参考1](https://img.atwiki.jp/yappy0625/attach/11/14/soturon.pdf)
+[参考1](https://img.atwiki.jp/yappy0625/attach/11/14/soturon.pdf)  
 [参考2](https://www.kurims.kyoto-u.ac.jp/~kyodo/kokyuroku/contents/pdf/1114-22.pdf)
 
 今回は被覆を一つ選ぶ毎に、ジャンプをする必要がある(i.e. 追加のコストが発生する)ので、費用を少し上乗せするようにして選んでいくと改善しました。
@@ -197,7 +218,7 @@ Manipulate the robot with these commands and paint the image as shown in the inp
 ### Solution Summary
 
 seed2
-! [seed2](imgs/seed2.gif)
+![seed2](imgs/seed2.gif)
 
 ### Solution
 
@@ -251,12 +272,12 @@ Therefore, by pruning them appropriately, we can keep the time within 5 seconds.
 
 The specific speed-up method is as follows.
 
-* The initial point(sr,sc) is always a blue point.
-* Start the number of loops at 2 and terminate when a fail occurs.
-* When painting a straight line, choose the longest one (but consider looping separately).
-* Do simple checks to make sure there is no risk of failure before simulation
-* speed up simulation by using bitset
-* Remove elements that have upper compatible (However, checking all of them will result in TLE. Thus, I checked only backward compatible of the candidates adopted in the step described below).
+- The initial point(sr,sc) is always a blue point.
+- Start the number of loops at 2 and terminate when a fail occurs.
+- When painting a straight line, choose the longest one (but consider looping separately).
+- Do simple checks to make sure there is no risk of failure before simulation
+- speed up simulation by using bitset
+- Remove elements that have upper compatible (However, checking all of them will result in TLE. Thus, I checked only backward compatible of the candidates adopted in the step described below).
 
 ---
 
@@ -271,7 +292,7 @@ Each candidate has a set of several points to paint, and each blue point needs t
 Various heuristics seem to be known for this problem.
 Especially, the greedy method, which focuses on cost-effectiveness, provides some approximation guarantees, so I decided to use this method as the main one.
 
-[Reference1](https://img.atwiki.jp/yappy0625/attach/11/14/soturon.pdf)
+[Reference1](https://img.atwiki.jp/yappy0625/attach/11/14/soturon.pdf)  
 [Reference2](https://www.kurims.kyoto-u.ac.jp/~kyodo/kokyuroku/contents/pdf/1114-22.pdf)
 
 In this MM Problem, every time I select one covering, the robot needs to make a jump (i.e. incurring an additional cost), so I improved the selection by adding a little extra cost.
