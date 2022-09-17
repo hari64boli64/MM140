@@ -55,7 +55,7 @@ seed2
 
 #### step 1/2 候補の列挙
 
-いくつかの基本的なパターンを列挙して、それらを候補としました
+いくつかの基本的なパターンを列挙して、それらを候補としました  
 以下のパターンは、さらにどこからどの向きでスタートするのか(sr,sc,sd)の情報も含みます。
 
 1. FOR RF
@@ -118,7 +118,7 @@ seed2
 
 各候補がいくつかの塗れる点の集合を持っていて、かつ、各塗られるべき点は最低1度は塗られる必要がある(一度は被覆される必要がある)ということから、この問題に対応しています。
 
-(私は最初、この問題を最小費用流で解けると勘違いしていましたが、実はNP困難でした。)
+(私は最初、この問題を最小費用流で解けると勘違いしていましたが、実はNP困難でした)
 
 この問題は様々なヒューリスティックが知られているようですが、費用対効果に注目した貪欲法だけである程度の近似保証が得られるので、この方法をメインに考えていくことにしました。
 
@@ -181,7 +181,7 @@ while (painted_num < TARGET_NUM) {
 
 最後の方にJが多発するということが起こりがちなので、それをなんとかしたかったのですが、あまりうまく行きませんでした。
 
-01bfsやbitDPなどの手法で残りの点を巡回する手法を選ぼうと思ったのですが、実装があまりに大変な上、点がばらけすぎているので、あまり効果が望めませんでした。
+01bfsやbitDPなどの手法で残りの点を巡回しようと思ったのですが、実装があまりに大変な上、点がばらけすぎているので、あまり効果が望めませんでした。
 
 例:seed3
 ![disparate%20points](imgs/disparate%20points.jpg)
@@ -224,7 +224,7 @@ seed2
 
 #### Step 1/2 Enumerate candidates
 
-I enumerated some basic patterns and made them candidates
+I enumerated some basic patterns and made them candidates.  
 The following patterns additionally include information on where and in which direction to start (sr,sc,sd).
 
 1. FOR RF
@@ -241,7 +241,7 @@ The following patterns additionally include information on where and in which di
    Example: seed1
    ![FOR RFRF](imgs/FOR_RFRF.gif)
 
-   The number of states is $O(N^3dirLen^2loopLen)$.
+   The number of states is $O(N^3dirLen^2loopLen)$.  
    (where $dirLen:=8,loopLen:=9$ )
 
 2. RF
@@ -267,8 +267,8 @@ The following patterns additionally include information on where and in which di
 
    The number of states is $O(N^5loopLen)$.
 
-If we enumerate all these candidates, it would take too much time.  
-Therefore, by pruning them appropriately, we can keep the time within 5 seconds.
+If I enumerate all these candidates, it would take too much time.  
+Therefore, by pruning them appropriately, I can keep the time within 5 seconds.
 
 The specific speed-up method is as follows.
 
@@ -283,13 +283,13 @@ The specific speed-up method is as follows.
 
 #### Step 2/2 Solve the set covering problem
 
-Deciding which candidates to use for painting the image is somehow similar to the [weighted set covering problem](https://ja.wikipedia.org/wiki/%E9%9B%86%E5%90%88%E8%A2%AB%E8%A6%86%E5%95%8F%E9%A1%8C ).
+Deciding which candidates to use for painting the image is somewhat similar to the [weighted set covering problem](https://ja.wikipedia.org/wiki/%E9%9B%86%E5%90%88%E8%A2%AB%E8%A6%86%E5%95%8F%E9%A1%8C ).
 
 Each candidate has a set of several points to paint, and each blue point needs to be painted at least once (in other words, needs to be covered at least once).
 
 (I initially mistakenly thought that this problem could be solved with [mincost flow](https://atcoder.github.io/ac-library/production/document_ja/mincostflow.html), but it turned out this problem was NP-hard)
 
-Various heuristics seem to be known for this problem.
+Various heuristics seem to be known for this problem.  
 Especially, the greedy method, which focuses on cost-effectiveness, provides some approximation guarantees, so I decided to use this method as the main one.
 
 [Reference1](https://img.atwiki.jp/yappy0625/attach/11/14/soturon.pdf)  
