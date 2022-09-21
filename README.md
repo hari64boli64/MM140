@@ -29,12 +29,16 @@
 
 ## 日本語
 
-以下、日本語による参加記です
+暫定20位の66.11632点でした。
+
+数字を見れば分かる通り、あまり良い解法であるとは言えませんが、何らかの参考になれば幸いです。
+
+以下、日本語による参加記です。
 
 ### 問題概要
 
-N*Nの一部が青く塗られたグリッドが与えられる  
-ペンを持つロボットを以下のコマンドで操作する  
+N*Nの一部が青く塗られたグリッドが与えられる。  
+ペンを持つロボットを以下のコマンドで操作する。  
 
 | 操作   | 概要                          | コスト    |
 | ------ | ----------------------------- | --------- |
@@ -44,7 +48,7 @@ N*Nの一部が青く塗られたグリッドが与えられる
 | J      | 任意マスにジャンプ            | JC([2,5]) |
 | FOR    | FOR ENDで囲んだ範囲を繰り返す | FC([2,5]) |
 
-これらのコマンドを用いてロボットを操作し、入力のように画像を塗れ
+これらのコマンドを用いてロボットを操作し、入力のように画像を塗れ。
 
 ### 解概略
 
@@ -55,7 +59,7 @@ seed2
 
 #### step 1/2 候補の列挙
 
-いくつかの基本的なパターンを列挙して、それらを候補としました  
+いくつかの基本的なパターンを列挙して、それらを候補としました。  
 以下のパターンは、さらにどこからどの向きでスタートするのか(sr,sc,sd)の情報も含みます。
 
 1. FOR RF
@@ -116,7 +120,7 @@ seed2
 
 以上で列挙した候補の内、どれを選ぶべきかということは、簡易的には[重み付き集合被覆問題](https://ja.wikipedia.org/wiki/%E9%9B%86%E5%90%88%E8%A2%AB%E8%A6%86%E5%95%8F%E9%A1%8C)になります。
 
-各候補がいくつかの塗れる点の集合を持っていて、かつ、各塗られるべき点は最低1度は塗られる必要がある(一度は被覆される必要がある)ということから、この問題に対応しています。
+各候補がいくつかの塗れる点の集合を持っていて、かつ、各塗られるべき点は最低一度は塗られる必要がある(つまり、一度は被覆される必要がある)ということから、この問題に対応しています。
 
 (私は最初、この問題を最小費用流で解けると勘違いしていましたが、実はNP困難でした)
 
@@ -190,15 +194,28 @@ while (painted_num < TARGET_NUM) {
 
 ### 感想
 
-最初は[HACK TO THE FUTURE 2022](https://atcoder.jp/contests/future-contest-2022-final-open)に近いのかなという印象を受けましたが、ところどころ異なる印象を受けました。
+最初は[HACK TO THE FUTURE 2022](https://atcoder.jp/contests/future-contest-2022-final-open)や[ICFPC2022](https://qiita.com/hari64/items/b24d39536734c0d55c9f)に近いのかなという印象を受けましたが、ところどころ異なる印象を受けました。
 
-AHC014があるので最初の2日間だけの参加になりましたが、面白かったです。
+特に、HACK TO THE FUTUREの方には思考を引っ張られすぎたかも知れません。
+この問題では、左手法によるFORループが極めて有効でした。
+(参考 [TERRYさんの参加記](https://www.terry-u16.net/entry/httf2022-final))
+
+このMMの問題でも同様に、FORループが重要になるのかと思われましたが、あまりそれを使用せず高得点を出している他の参加者も多くいるようです。
+やはり最後のJの連発に代表されるような、塗り残しの散らばりが発生してしまうのが問題のようです。
+
+AHC014があるので最初の2日間だけの参加になりましたが、面白く、学びがありました。
 
 お読みいただきありがとうございました。
 
 ## ENGLISH
 
+I was 20th with 66.11632 points (provisional).  
+
+As you can see, my solution is not a very good one, but I hope this can be of some comparison.
+
 The following is a note of my approach.
+
+(And, sorry for my poor English...)
 
 ### Problem Summary
 
@@ -268,7 +285,7 @@ The following patterns additionally include information on where and in which di
    The number of states is $O(N^5loopLen)$.
 
 If I enumerate all these candidates, it would take too much time.  
-Therefore, by pruning them appropriately, I can keep the time within 5 seconds.
+Therefore, by pruning them appropriately, I keep the time within 5 seconds.
 
 The specific speed-up method is as follows.
 
@@ -276,7 +293,7 @@ The specific speed-up method is as follows.
 - Start the number of loops at 2 and terminate when a fail occurs.
 - When painting a straight line, choose the longest one (but consider looping separately).
 - Do simple checks to make sure there is no risk of failure before simulation
-- speed up simulation by using bitset
+- speed up by using bitset
 - Remove elements that have upper compatible (However, checking all of them will result in TLE. Thus, I checked only backward compatible of the candidates adopted in the step described below).
 
 ---
@@ -295,7 +312,7 @@ Especially, the greedy method, which focuses on cost-effectiveness, provides som
 [Reference1](https://img.atwiki.jp/yappy0625/attach/11/14/soturon.pdf)  
 [Reference2](https://www.kurims.kyoto-u.ac.jp/~kyodo/kokyuroku/contents/pdf/1114-22.pdf)
 
-In this MM Problem, every time I select one covering, the robot needs to make a jump (i.e. incurring an additional cost), so I improved the selection by adding a little extra cost.
+In this MM Problem, every time I select one covering, the robot needs to make a jump (i.e. incurring an additional cost), so I could improved the selection by adding a little extra cost.
 
 ```cpp
 while (painted_num < TARGET_NUM) {
@@ -356,12 +373,19 @@ I tried to solve this by a method such as 01bfs or bitDP, but it was too hard to
 Example: seed3
 ![disparate%20points](imgs/disparate%20points.jpg)
 
-I did not raise the pen at all, so perhaps I should have worked around that.
+I did not use U at all, so perhaps I should have worked around that.
 
 ### Impressions
 
-At first I had the impression that this problem was similar to [HACK TO THE FUTURE 2022](https://atcoder.jp/contests/future-contest-2022-final-open), but it was different in some ways.
+At first I had the impression that this problem was similar to [HACK TO THE FUTURE 2022](https://atcoder.jp/contests/future-contest-2022-final-open) and [ICFPC2022](https://qiita.com/hari64/items/b24d39536734c0d55c9f), but in places I got a different impression.
 
-I only participated the first two days because of AHC014, but it was very interesting.
+In particular, I may have been too affected by HACK TO THE FUTURE.
+In this problem, the FOR loop with the left-hand method was extremely useful.  
+(Reference: [TERRY's entry](https://www.terry-u16.net/entry/httf2022-final))
+
+I thought that the FOR loop would be important in this MM problem as well, but there seems to be many other participants who achieved high scores without using FOR.
+Probably, the most problem of my solution is the scattering of leftover paint, as represented by the last series of J.
+
+I only participated the first two days because of AHC014, but it was very interesting and I had a good experience.
 
 Thank you for reading.
